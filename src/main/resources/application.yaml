@@ -1,0 +1,22 @@
+server:
+  port: ${SERVER_PORT:8080}
+spring:
+  application:
+    name: passets-api
+  http:
+    converters:
+      preferred-json-mapper: gson
+  gson:
+    date-format: yyyy-MM-dd HH:mm:ss
+management:
+  endpoint:
+    health:
+      show-details: always
+logging:
+  level:
+    com.defvul: ${LOG_LEVEL:info}
+swagger:
+  auth: false
+elasticsearch:
+  url: ${ELASTICSEARCH_URL:http://127.0.0.1:9200}
+  index: ${ELASTICSEARCH_INDEX:passets-syslog}
