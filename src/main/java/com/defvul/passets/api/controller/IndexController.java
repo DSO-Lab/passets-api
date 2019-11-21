@@ -21,7 +21,7 @@ import java.util.List;
  */
 @RestController
 @Api(tags = "接口")
-public class IndexController extends BaseController {
+public class IndexController {
 
     @Autowired
     private EsSearchService esSearchService;
