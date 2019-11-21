@@ -1,6 +1,6 @@
-FROM szgx/java:8u111_debian
+FROM armv7/armhf-java8:latest
 
-LABEL maintainer="wimas" version="1.0.0"
+LABEL maintainer="tanjelly@gmail.com" version="1.0.0"
 
 ENV API_VER="1.0.0" TZ="Asia/Shanghai" JAVA_OPTS="" WAIT_SERVICE="passets-elasticsearch:9200" ELASTICSEARCH_URL="http://passets-elasticsearch:9200" ELASTICSEARCH_INDEX="passets-syslog"
 
