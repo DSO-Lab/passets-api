@@ -14,6 +14,6 @@ RUN curl -L https://github.com/DSO-Lab/passets-api/releases/download/${API_VER}/
 	echo "Asia/Shanghai" > /etc/timezone && \
 	chmod +x wait-for-it.sh
 
-ENTRYPOINT ["bash", "-c", "/wait-for-it.sh ${WAIT_SERVICE} -- java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar /app.jar"]
+ENTRYPOINT ["bash", "-c", "/wait-for-it.sh ${WAIT_SERVICE} -- java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar /api.jar"]
 
 EXPOSE 8080
