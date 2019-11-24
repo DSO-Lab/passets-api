@@ -1,19 +1,26 @@
+FROM maven:3.5-jdk-8 AS pre_jar
+
+COPY src/ /src/
+
+COPY pom.xml /
+
+WORKDIR /
+
+RUN mvn package -DskipTests=true
+
 FROM szgx/java:8u111_debian
 
 LABEL maintainer="wimas" version="1.0.0"
 
-ENV API_VER="1.0.0" TZ="Asia/Shanghai" JAVA_OPTS="" WAIT_SERVICE="passets-elasticsearch:9200" ELASTICSEARCH_URL="http://passets-elasticsearch:9200" ELASTICSEARCH_INDEX="passets-syslog"
+ENV TZ="Asia/Shanghai" JAVA_OPTS="" ELASTICSEARCH_URL="http://passets-elasticsearch:9200" ELASTICSEARCH_INDEX="passets"
 
-VOLUME /tmp
+COPY --from=pre_jar --chown=0:0 /target/api-1.0.0.jar /api.jar
 
 WORKDIR /
 
-RUN curl -L https://github.com/DSO-Lab/passets-api/releases/download/${API_VER}/api-${API_VER}.jar -o api.jar && \
-    curl -L https://github.com/vishnubob/wait-for-it/raw/master/wait-for-it.sh -o wait-for-it.sh && \
-    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-	echo "Asia/Shanghai" > /etc/timezone && \
-	chmod +x wait-for-it.sh
+RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
 
-ENTRYPOINT ["bash", "-c", "/wait-for-it.sh ${WAIT_SERVICE} -- java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar /api.jar"]
+ENTRYPOINT ["bash", "-c", "java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar /api.jar"]
 
 EXPOSE 8080

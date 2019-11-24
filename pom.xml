@@ -21,6 +21,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>2.1.10.RELEASE</version>
+        <relativePath></relativePath>
     </parent>
 
     <dependencies>
@@ -125,6 +126,9 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring.boot.version}</version>
+                <configuration>
+                    <mainClass>com.defvul.passets.api.Application</mainClass>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>

@@ -10,9 +10,9 @@
 
 ```
 # X86_64
-docker build passets-api:<tag> .
+docker build -t passets-api:<tag> .
 # ARMv7
-docker build -f Dockerfile_armv7 passets-api:<tag> .
+docker build -f Dockerfile_armv7 -t passets-api:<tag> .
 ```
 
 ## 容器启动
