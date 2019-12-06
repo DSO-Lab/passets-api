@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  api:
+    image: passets-api:1.0.0
+    container_name: passets-api
+    environment:
+      - TZ=Asia/Shanghai
+      - ELASTICSEARCH_URL=http://<elasticsearch>:9200
+      - ELASTICSEARCH_INDEX=passets
+      - WAIT_SERVICE=<elasticsearch>:9200
+    depends_on:
+      - elasticsearch
+    ports:
+      - "8081:8080"
