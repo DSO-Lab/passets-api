@@ -1,5 +1,7 @@
 package com.defvul.passets.api.bo.res;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,9 +17,15 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@ApiModel(description = "URL数据")
 public class UrlBO {
 
-    private String host;
+    @ApiModelProperty(value = "主站")
+    private String site;
 
-    private List<String> urls;
+    @ApiModelProperty(value = "访问次数")
+    private long count;
+
+    @ApiModelProperty(value = "子URL")
+    private List<InfoBO> urls;
 }

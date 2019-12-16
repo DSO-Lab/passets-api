@@ -2,6 +2,8 @@ package com.defvul.passets.api.bo.req;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.gson.annotations.SerializedName;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.util.Date;
@@ -13,37 +15,30 @@ import java.util.Date;
  * @author wimas
  */
 @Data
+@ApiModel(description = "查询表单")
 public class QueryBaseForm {
 
+    @ApiModelProperty(value = "开始时间")
     private Date start;
 
+    @ApiModelProperty(value = "结束时间")
     private Date end;
 
-    @SerializedName("only_inner")
-    @JsonProperty("only_inner")
-    private boolean onlyInner = false;
+    @ApiModelProperty(value = "IP")
+    private String ip;
 
-    public Date getStart() {
-        return start;
-    }
+    @ApiModelProperty(value = "URL")
+    private String url;
 
-    public void setStart(Date start) {
-        this.start = start;
-    }
+    @ApiModelProperty(value = "端口")
+    private String port;
 
-    public Date getEnd() {
-        return end;
-    }
+    @ApiModelProperty(value = "指纹名称")
+    private String finger;
 
-    public void setEnd(Date end) {
-        this.end = end;
-    }
-
-    public boolean isOnlyInner() {
-        return onlyInner;
-    }
-
-    public void setOnlyInner(boolean onlyInner) {
-        this.onlyInner = onlyInner;
-    }
+    @ApiModelProperty(value = "分类ID")
+    @SerializedName("category_id")
+    @JsonProperty("category_id")
+    private long categoryId;
 }
+
