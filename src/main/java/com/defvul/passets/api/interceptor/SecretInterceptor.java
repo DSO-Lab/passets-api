@@ -23,7 +23,10 @@ public class SecretInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String secret = request.getHeader("X-Auth-Secret");
-        response.setStatus(403);
-        return StringUtils.isNotBlank(secret) && this.secret.equals(secret);
+        boolean result = StringUtils.isNotBlank(secret) && this.secret.equals(secret);
+        if (!result) {
+            response.setStatus(403);
+        }
+        return result;
     }
 }
