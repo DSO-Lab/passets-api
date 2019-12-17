@@ -18,3 +18,4 @@ logging:
 elasticsearch:
   url: ${ELASTICSEARCH_URL:http://127.0.0.1:9200}
   index: ${ELASTICSEARCH_INDEX:passets-syslog}
+secret: ${SECRET:dsolabpassetsapisecret}
