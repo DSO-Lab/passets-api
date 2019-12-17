@@ -9,6 +9,7 @@ services:
       - ELASTICSEARCH_URL=http://<elasticsearch>:9200
       - ELASTICSEARCH_INDEX=passets
       - WAIT_SERVICE=<elasticsearch>:9200
+      - SECRET=dsolabpassetsapisecret
     depends_on:
       - elasticsearch
     ports:
