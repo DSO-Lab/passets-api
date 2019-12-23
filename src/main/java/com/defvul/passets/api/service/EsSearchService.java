@@ -224,7 +224,7 @@ public class EsSearchService {
     }
 
     private SearchRequest getSearchRequest() {
-        return new SearchRequest(index);
+        return new SearchRequest(index + "-*");
     }
 
     private SearchSourceBuilder getSourceBuilder() {
