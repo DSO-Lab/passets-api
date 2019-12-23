@@ -2,15 +2,13 @@ version: "3"
 
 services:
   api:
-    image: passets-api:1.0.0
+    build: .
+    image: dsolab/passets-api:1.0.0
     container_name: passets-api
     environment:
       - TZ=Asia/Shanghai
-      - ELASTICSEARCH_URL=http://<elasticsearch>:9200
+      - ELASTICSEARCH_URL=<elasticsearch>:9200
       - ELASTICSEARCH_INDEX=passets
-      - WAIT_SERVICE=<elasticsearch>:9200
-      - SECRET=dsolabpassetsapisecret
-    depends_on:
-      - elasticsearch
+      - SECRET=<dsolabpassetsapisecret>
     ports:
       - "8081:8080"
