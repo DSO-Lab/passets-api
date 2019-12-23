@@ -11,6 +11,7 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.GetMappingsRequest;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -183,6 +184,11 @@ public class EsSearchService {
         // 分类ID
         if (form.getCategoryId() != 0) {
             boolQueryBuilder.must(QueryBuilders.termQuery("apps.categories.id", form.getCategoryId()));
+        }
+
+        // 筛选内网资产
+        if (form.isInner()) {
+            boolQueryBuilder.must(QueryBuilders.termQuery("inner", form.isInner()));
         }
 
         // 时间范围

@@ -36,6 +36,9 @@ public class QueryBaseForm {
     @ApiModelProperty(value = "指纹名称")
     private String finger;
 
+    @ApiModelProperty(value = "是否内网")
+    private boolean inner;
+
     @ApiModelProperty(value = "分类ID")
     @SerializedName("category_id")
     @JsonProperty("category_id")

@@ -12,7 +12,7 @@ FROM szgx/java:8u111_debian
 
 LABEL maintainer="wimas" version="1.0.0"
 
-ENV TZ="Asia/Shanghai" JAVA_OPTS="" ELASTICSEARCH_URL="http://passets-elasticsearch:9200" ELASTICSEARCH_INDEX="passets"
+ENV TZ="Asia/Shanghai" JAVA_OPTS="" ELASTICSEARCH_URL="http://passets-elasticsearch:9200" ELASTICSEARCH_INDEX="logstash-passets"
 
 COPY --from=pre_jar --chown=0:0 /target/api-1.0.0.jar /api.jar
 

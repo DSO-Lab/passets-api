@@ -16,6 +16,7 @@ logging:
   level:
     com.defvul: ${LOG_LEVEL:info}
 elasticsearch:
-  url: ${ELASTICSEARCH_URL:http://127.0.0.1:9200}
-  index: ${ELASTICSEARCH_INDEX:passets-syslog}
+  url: ${ELASTICSEARCH_URL:http://passets-elasticsearch:9200}
+  index: ${ELASTICSEARCH_INDEX:logstash-passets}
 secret: ${SECRET:dsolabpassetsapisecret}
+data-save-date: ${DATA_SAVE_DAY:30}
