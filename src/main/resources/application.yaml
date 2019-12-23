@@ -19,4 +19,4 @@ elasticsearch:
   url: ${ELASTICSEARCH_URL:http://passets-elasticsearch:9200}
   index: ${ELASTICSEARCH_INDEX:logstash-passets}
 secret: ${SECRET:dsolabpassetsapisecret}
-data-save-date: ${DATA_SAVE_DAY:30}
+data-save-day: ${DATA_SAVE_DAY:30}

@@ -3,6 +3,7 @@ package com.defvul.passets.api;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.ParameterBuilder;
 import springfox.documentation.builders.PathSelectors;
@@ -25,6 +26,7 @@ import java.util.List;
  */
 @SpringBootApplication(scanBasePackages = {"com.defvul"})
 @EnableSwagger2
+@EnableScheduling
 public class Application {
 
     public static void main(String[] args) {
