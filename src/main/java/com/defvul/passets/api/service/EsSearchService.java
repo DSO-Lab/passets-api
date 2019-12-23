@@ -182,8 +182,12 @@ public class EsSearchService {
         }
 
         // 分类ID
-        if (form.getCategoryId() != 0) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("apps.categories.id", form.getCategoryId()));
+        if (form.getCategoryId() != null && !form.getCategoryId().isEmpty()) {
+            BoolQueryBuilder tmpBoolQueryBuilder = QueryBuilders.boolQuery();
+            for (Long id : form.getCategoryId()) {
+                tmpBoolQueryBuilder.should(QueryBuilders.termQuery("apps.categories.id", id));
+            }
+            boolQueryBuilder.must(tmpBoolQueryBuilder);
         }
 
         // 筛选内网资产

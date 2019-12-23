@@ -7,6 +7,7 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * 说明:
@@ -42,6 +43,6 @@ public class QueryBaseForm {
     @ApiModelProperty(value = "分类ID")
     @SerializedName("category_id")
     @JsonProperty("category_id")
-    private long categoryId;
+    private List<Long> categoryId;
 }
 
