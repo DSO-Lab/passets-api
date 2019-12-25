@@ -140,7 +140,7 @@ public class EsSearchService {
         String topName = "top_score_hits";
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
-        sourceBuilder.from(form.getCurrentPage());
+        sourceBuilder.from(0);
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
         sourceBuilder.query(getBoolQueryWithQueryForm(form));
 
