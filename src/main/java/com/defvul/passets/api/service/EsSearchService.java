@@ -18,6 +18,7 @@ import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.aggregations.*;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.MaxAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.ParsedTopHits;
 import org.elasticsearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -145,13 +146,12 @@ public class EsSearchService {
         sourceBuilder.query(getBoolQueryWithQueryForm(form));
 
         TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(termName).field("host.keyword").size(SIZE);
-//        termsAggregationBuilder.order(BucketOrder.aggregation("timestamp_order",false));
+        termsAggregationBuilder.order(BucketOrder.aggregation("timestamp_order", false));
 
         TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topName).size(1).fetchSource(INCLUDE_SOURCE, null);
 
-//        MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");
-
-        termsAggregationBuilder.subAggregation(topHitsAggregationBuilder);
+        MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");
+        termsAggregationBuilder.subAggregation(topHitsAggregationBuilder).subAggregation(maxAggregationBuilder);
 
         sourceBuilder.aggregation(termsAggregationBuilder);
         sourceBuilder.fetchSource("host", null);
@@ -163,21 +163,27 @@ public class EsSearchService {
             return new Page<>();
         }
 
+        Terms terms = response.getAggregations().get(termName);
+
         Page<InfoBO> page = new Page<>();
         List<InfoBO> result = new ArrayList<>();
-        Terms terms = response.getAggregations().get(termName);
         page.setCurrentPage(form.getCurrentPage());
         page.setPageSize(form.getPageSize());
         page.setTotal(terms.getBuckets().size());
-        terms.getBuckets().subList((form.getCurrentPage() - 1) * form.getPageSize(), form.getCurrentPage() * form.getPageSize());
-        for (Terms.Bucket bucket : terms.getBuckets()) {
+
+        int index = (form.getCurrentPage() - 1) * form.getPageSize();
+        int end = (form.getCurrentPage() * form.getPageSize() < terms.getBuckets().size()) ||
+                (form.getPageSize() < terms.getBuckets().size()) ?
+                form.getCurrentPage() * form.getPageSize() : terms.getBuckets().size();
+        List<? extends Terms.Bucket> subList = terms.getBuckets().subList(index, end);
+        for (Terms.Bucket bucket : subList) {
             ParsedTopHits hits = bucket.getAggregations().get(topName);
             String json = hits.getHits().getAt(0).getSourceAsString();
             InfoBO bo = new Gson().fromJson(json, InfoBO.class);
             bo.setCount(bucket.getDocCount());
             result.add(bo);
         }
-        if(result != null){
+        if (result != null) {
             page.setData(result);
         }
         return page;

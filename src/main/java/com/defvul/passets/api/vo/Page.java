@@ -16,8 +16,8 @@ public class Page<T> {
     @ApiModelProperty(value = "总条数")
     private Integer total = 0;
 
-    @SerializedName("@page_size")
-    @JsonProperty("@page_size")
+    @SerializedName("page_size")
+    @JsonProperty("page_size")
     @ApiModelProperty(value = "每页最大条数")
     private Integer pageSize;
 
