@@ -4,6 +4,7 @@ import com.defvul.passets.api.bo.req.QueryBaseForm;
 import com.defvul.passets.api.bo.res.InfoBO;
 import com.defvul.passets.api.bo.res.UrlBO;
 import com.defvul.passets.api.service.EsSearchService;
+import com.defvul.passets.api.vo.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,12 @@ public class IndexController {
     @ApiOperation(value = "查询IP+端口")
     public List<InfoBO> ip(@RequestBody QueryBaseForm form) {
         return esSearchService.queryTimeSlotWithIpAndPort(form);
+    }
+
+    @PostMapping("/ip/page")
+    @ApiOperation(value = "分页查询IP+端口")
+    public Page<InfoBO> ipPage(@RequestBody QueryBaseForm form) {
+        return esSearchService.ipPage(form);
     }
 
     @PostMapping("/url")

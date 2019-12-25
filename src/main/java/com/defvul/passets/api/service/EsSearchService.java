@@ -3,6 +3,7 @@ package com.defvul.passets.api.service;
 import com.defvul.passets.api.bo.req.QueryBaseForm;
 import com.defvul.passets.api.bo.res.InfoBO;
 import com.defvul.passets.api.bo.res.UrlBO;
+import com.defvul.passets.api.vo.Page;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -13,10 +14,8 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.RangeQueryBuilder;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.index.query.*;
+import org.elasticsearch.search.aggregations.*;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.ParsedTopHits;
@@ -134,6 +133,54 @@ public class EsSearchService {
             result.add(bo);
         }
         return result;
+    }
+
+    public Page<InfoBO> ipPage(QueryBaseForm form) {
+        String termName = "ip_port";
+        String topName = "top_score_hits";
+        SearchRequest request = getSearchRequest();
+        SearchSourceBuilder sourceBuilder = getSourceBuilder();
+        sourceBuilder.from(form.getCurrentPage());
+        sourceBuilder.sort("@timestamp", SortOrder.DESC);
+        sourceBuilder.query(getBoolQueryWithQueryForm(form));
+
+        TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(termName).field("host.keyword").size(SIZE);
+//        termsAggregationBuilder.order(BucketOrder.aggregation("timestamp_order",false));
+
+        TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topName).size(1).fetchSource(INCLUDE_SOURCE, null);
+
+//        MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");
+
+        termsAggregationBuilder.subAggregation(topHitsAggregationBuilder);
+
+        sourceBuilder.aggregation(termsAggregationBuilder);
+        sourceBuilder.fetchSource("host", null);
+
+        request.source(sourceBuilder);
+
+        SearchResponse response = search(request);
+        if (response == null) {
+            return new Page<>();
+        }
+
+        Page<InfoBO> page = new Page<>();
+        List<InfoBO> result = new ArrayList<>();
+        Terms terms = response.getAggregations().get(termName);
+        page.setCurrentPage(form.getCurrentPage());
+        page.setPageSize(form.getPageSize());
+        page.setTotal(terms.getBuckets().size());
+        terms.getBuckets().subList((form.getCurrentPage() - 1) * form.getPageSize(), form.getCurrentPage() * form.getPageSize());
+        for (Terms.Bucket bucket : terms.getBuckets()) {
+            ParsedTopHits hits = bucket.getAggregations().get(topName);
+            String json = hits.getHits().getAt(0).getSourceAsString();
+            InfoBO bo = new Gson().fromJson(json, InfoBO.class);
+            bo.setCount(bucket.getDocCount());
+            result.add(bo);
+        }
+        if(result != null){
+            page.setData(result);
+        }
+        return page;
     }
 
     public List<UrlBO> queryTimeSlotWithUrl(QueryBaseForm form) {

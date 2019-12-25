@@ -17,7 +17,7 @@ import java.util.List;
  */
 @Data
 @ApiModel(description = "查询表单")
-public class QueryBaseForm {
+public class QueryBaseForm extends BaseForm{
 
     @ApiModelProperty(value = "开始时间")
     private Date start;
