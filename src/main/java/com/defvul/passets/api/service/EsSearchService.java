@@ -7,11 +7,11 @@ import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.GetMappingsRequest;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -58,15 +59,40 @@ public class EsSearchService {
             "server",
             "header",
             "site",
-            "ip_num",
             "apps",
             "inner",
             "path",
             "body",
-            "title"
+            "title",
+            "ip",
+    };
+
+    private static final String[] INCLUDE_SOURCE_IP = new String[]{
+            "@timestamp",
+            "pro",
+            "port",
+            "host",
+            "url_tpl",
+            "site",
+            "apps",
+            "inner",
+            "ip",
     };
 
     private static final int SIZE = 2147483647;
+
+    @PostConstruct
+    public void init() {
+        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+        request.persistentSettings(new HashMap<String, Object>(1) {{
+            put("search.max_buckets", SIZE);
+        }});
+        try {
+            client.cluster().putSettings(request, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            log.error("执行es设置报错: {}", ExceptionUtils.getStackTrace(e));
+        }
+    }
 
     /**
      * 查询一段时间内的IP和端口
@@ -84,14 +110,16 @@ public class EsSearchService {
         TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(termName).field("host.keyword").size(SIZE);
 
         TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topName).size(1).sort("@timestamp", SortOrder.DESC);
-        topHitsAggregationBuilder.fetchSource(INCLUDE_SOURCE, null);
+        topHitsAggregationBuilder.fetchSource(INCLUDE_SOURCE_IP, null);
         termsAggregationBuilder.subAggregation(topHitsAggregationBuilder);
 
         sourceBuilder.aggregation(termsAggregationBuilder);
 
         request.source(sourceBuilder);
 
+        log.info("IP开始搜索");
         SearchResponse response = search(request);
+        log.info("IP结束搜索");
         if (response == null) {
             return Collections.emptyList();
         }
