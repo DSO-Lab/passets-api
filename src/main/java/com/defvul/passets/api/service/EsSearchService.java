@@ -148,7 +148,7 @@ public class EsSearchService {
         TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(termName).field("host.keyword").size(SIZE);
         termsAggregationBuilder.order(BucketOrder.aggregation("timestamp_order", false));
 
-        TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topName).size(1).fetchSource(INCLUDE_SOURCE, null);
+        TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topName).size(1).fetchSource(INCLUDE_SOURCE_IP, null);
 
         MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");
         termsAggregationBuilder.subAggregation(topHitsAggregationBuilder).subAggregation(maxAggregationBuilder);
