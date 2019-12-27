@@ -45,4 +45,15 @@ public class IndexController {
         return esSearchService.queryTimeSlotWithUrl(form);
     }
 
+    @PostMapping("/url/page")
+    @ApiOperation(value = "分页查询站点")
+    public Page<UrlBO> urlPage(@RequestBody QueryBaseForm form) {
+        return esSearchService.urlPage(form);
+    }
+
+    @PostMapping("/urls/page")
+    @ApiOperation(value = "分页查询子链接")
+    public Page<InfoBO> urlsPage(@RequestBody QueryBaseForm form) {
+        return esSearchService.urlsPage(form);
+    }
 }

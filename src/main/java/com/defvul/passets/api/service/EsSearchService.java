@@ -15,6 +15,8 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.*;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
@@ -31,6 +33,7 @@ import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 说明:
@@ -138,23 +141,22 @@ public class EsSearchService {
 
     public Page<InfoBO> ipPage(QueryBaseForm form) {
         String termName = "ip_port";
-        String topName = "top_score_hits";
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
-        sourceBuilder.from(0);
-        sourceBuilder.sort("@timestamp", SortOrder.DESC);
+        sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
+                .size(form.getPageSize())
+                .sort("@timestamp", SortOrder.DESC);
+        sourceBuilder.fetchSource(INCLUDE_SOURCE_IP, null);
+        sourceBuilder.query(QueryBuilders.termQuery("state", 1));
         sourceBuilder.query(getBoolQueryWithQueryForm(form));
 
         TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(termName).field("host.keyword").size(SIZE);
         termsAggregationBuilder.order(BucketOrder.aggregation("timestamp_order", false));
 
-        TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topName).size(1).fetchSource(INCLUDE_SOURCE_IP, null);
-
         MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");
-        termsAggregationBuilder.subAggregation(topHitsAggregationBuilder).subAggregation(maxAggregationBuilder);
+        termsAggregationBuilder.subAggregation(maxAggregationBuilder);
 
         sourceBuilder.aggregation(termsAggregationBuilder);
-        sourceBuilder.fetchSource("host", null);
 
         request.source(sourceBuilder);
 
@@ -164,23 +166,19 @@ public class EsSearchService {
         }
 
         Terms terms = response.getAggregations().get(termName);
+        int total = terms.getBuckets().size();
 
         Page<InfoBO> page = new Page<>();
         List<InfoBO> result = new ArrayList<>();
         page.setCurrentPage(form.getCurrentPage());
         page.setPageSize(form.getPageSize());
-        page.setTotal(terms.getBuckets().size());
+        page.setTotal(total);
 
-        int index = (form.getCurrentPage() - 1) * form.getPageSize();
-        int end = (form.getCurrentPage() * form.getPageSize() < terms.getBuckets().size()) ||
-                (form.getPageSize() < terms.getBuckets().size()) ?
-                form.getCurrentPage() * form.getPageSize() : terms.getBuckets().size();
-        List<? extends Terms.Bucket> subList = terms.getBuckets().subList(index, end);
-        for (Terms.Bucket bucket : subList) {
-            ParsedTopHits hits = bucket.getAggregations().get(topName);
-            String json = hits.getHits().getAt(0).getSourceAsString();
+        SearchHits searchHits = response.getHits();
+        for (SearchHit hit : searchHits.getHits()) {
+            String json = hit.getSourceAsString();
             InfoBO bo = new Gson().fromJson(json, InfoBO.class);
-            bo.setCount(bucket.getDocCount());
+            terms.getBuckets().parallelStream().filter(b -> b.getKey().equals(bo.getHost())).forEach(b -> bo.setCount(b.getDocCount()));
             result.add(bo);
         }
         if (result != null) {
@@ -236,6 +234,116 @@ public class EsSearchService {
         return result;
     }
 
+    public Page<UrlBO> urlPage(QueryBaseForm form) {
+        String termName = "urls";
+        SearchRequest request = getSearchRequest();
+        SearchSourceBuilder sourceBuilder = getSourceBuilder();
+        sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
+                .size(form.getPageSize())
+                .fetchSource(INCLUDE_SOURCE, null)
+                .sort("@timestamp", SortOrder.DESC);
+        sourceBuilder.query(getBoolQueryWithQueryForm(form));
+
+        TermsAggregationBuilder aggregation = AggregationBuilders.terms(termName).field("site.keyword");
+        aggregation.size(SIZE).order(BucketOrder.aggregation("timestamp_order", false));
+
+        MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");
+
+        aggregation.subAggregation(maxAggregationBuilder);
+        sourceBuilder.aggregation(aggregation);
+
+        request.source(sourceBuilder);
+        SearchResponse response = search(request);
+        if (response == null) {
+            return new Page<>();
+        }
+
+        Terms terms = response.getAggregations().get(termName);
+        int total = terms.getBuckets().size();
+
+        Page<UrlBO> page = new Page<>();
+        Set<UrlBO> result = new HashSet<>();
+        page.setCurrentPage(form.getCurrentPage());
+        page.setPageSize(form.getPageSize());
+        page.setTotal(total);
+
+        SearchHits hits = response.getHits();
+        for (SearchHit hit : hits) {
+            String json = hit.getSourceAsString();
+            InfoBO infoBO = new Gson().fromJson(json, InfoBO.class);
+            if (infoBO.getUrl() != null) {
+                for (Terms.Bucket bucket : terms.getBuckets()) {
+                    String url = infoBO.getSite() != null ? infoBO.getSite() : infoBO.getUrl();
+                    if (url.endsWith("/")) {
+                        url = url.substring(0, url.length() - 1);
+                    }
+                    if (url.equals(bucket.getKey())) {
+                        result.add(new UrlBO(bucket.getKeyAsString(), bucket.getDocCount(), null));
+                    }
+                }
+            }
+        }
+        if (result.size() > 0) {
+            List<UrlBO> sortList = result.stream().sorted(Comparator.comparing(UrlBO::getCount).reversed())
+                    .collect(Collectors.toList());
+            page.setData(sortList);
+        }
+        return page;
+    }
+
+    public Page<InfoBO> urlsPage(QueryBaseForm form) {
+        if (form.getUrl() == null) {
+            return new Page<>();
+        }
+        String termName = "urls";
+        String childTermName = "urls_child";
+        SearchRequest request = getSearchRequest();
+        SearchSourceBuilder sourceBuilder = getSourceBuilder();
+        sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
+                .size(form.getPageSize())
+                .fetchSource(INCLUDE_SOURCE, null)
+                .sort("@timestamp", SortOrder.DESC);
+        sourceBuilder.query(getBoolQueryWithQueryForm(form));
+
+        TermsAggregationBuilder aggregation = AggregationBuilders.terms(termName).field("site.keyword");
+        aggregation.size(SIZE).order(BucketOrder.aggregation("timestamp_order", false));
+
+        TermsAggregationBuilder urlsChild = AggregationBuilders.terms(childTermName).field("url_tpl.keyword");
+        urlsChild.size(SIZE).order(BucketOrder.aggregation("timestamp_order", false));
+
+        MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");
+        urlsChild.subAggregation(maxAggregationBuilder);
+        aggregation.subAggregation(maxAggregationBuilder).subAggregation(urlsChild);
+
+        sourceBuilder.aggregation(aggregation);
+
+        request.source(sourceBuilder);
+        SearchResponse response = search(request);
+        if (response == null) {
+            return new Page<>();
+        }
+        Page<InfoBO> page = new Page<>();
+        List<InfoBO> result = new ArrayList<>();
+        page.setCurrentPage(form.getCurrentPage());
+        page.setPageSize(form.getPageSize());
+
+        SearchHits hits = response.getHits();
+        Terms terms = response.getAggregations().get(termName);
+        page.setTotal((int) hits.getTotalHits().value);
+        for (SearchHit hit : hits) {
+            String json = hit.getSourceAsString();
+            InfoBO infoBO = new Gson().fromJson(json, InfoBO.class);
+            terms.getBuckets().parallelStream()
+                    .filter(b -> b.getKeyAsString().equals(form.getUrl())).forEach(b -> infoBO.setCount(b.getDocCount()));
+            result.add(infoBO);
+        }
+        if (result.size() > 0) {
+            page.setData(result.parallelStream()
+                    .sorted(Comparator.comparing(InfoBO::getTimestamp).reversed()).collect(Collectors.toList()));
+        }
+        return page;
+    }
+
     private BoolQueryBuilder getBoolQueryWithQueryForm(QueryBaseForm form) {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
@@ -255,6 +363,8 @@ public class EsSearchService {
         // url
         if (StringUtils.isNotBlank(form.getUrl())) {
             boolQueryBuilder.must(QueryBuilders.termQuery("site.keyword", form.getUrl()));
+            boolQueryBuilder.must(QueryBuilders.termQuery("url.keyword", form.getUrl() + "/"));
+            boolQueryBuilder.must(QueryBuilders.termQuery("url_tpl.keyword", form.getUrl() + "/"));
         }
 
         // 指纹
