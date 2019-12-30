@@ -181,7 +181,7 @@ public class EsSearchService {
             terms.getBuckets().parallelStream().filter(b -> b.getKey().equals(bo.getHost())).forEach(b -> bo.setCount(b.getDocCount()));
             result.add(bo);
         }
-        if (result != null) {
+        if (result.size() > 0) {
             page.setData(result);
         }
         return page;
@@ -234,17 +234,11 @@ public class EsSearchService {
         return result;
     }
 
-    public Page<UrlBO> urlPage(QueryBaseForm form) {
+    public List<UrlBO> urlAll(QueryBaseForm form){
         String termName = "urls";
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
-        sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
-                .size(form.getPageSize())
-                .fetchSource(INCLUDE_SOURCE, null)
-                .sort("@timestamp", SortOrder.DESC);
-        BoolQueryBuilder boolQueryBuilder = getBoolQueryWithQueryForm(form);
-        boolQueryBuilder.must(QueryBuilders.existsQuery("site"));
-        sourceBuilder.query(boolQueryBuilder);
+        sourceBuilder.query(getBoolQueryWithQueryForm(form));
 
         TermsAggregationBuilder aggregation = AggregationBuilders.terms(termName).field("site.keyword");
         aggregation.size(SIZE).order(BucketOrder.aggregation("timestamp_order", false));
@@ -257,36 +251,16 @@ public class EsSearchService {
         request.source(sourceBuilder);
         SearchResponse response = search(request);
         if (response == null) {
-            return new Page<>();
+            return new ArrayList<>();
         }
 
         Terms terms = response.getAggregations().get(termName);
-        int total = terms.getBuckets().size();
 
-        Page<UrlBO> page = new Page<>();
-        Set<UrlBO> result = new HashSet<>();
-        page.setCurrentPage(form.getCurrentPage());
-        page.setPageSize(form.getPageSize());
-        page.setTotal(total);
-
-        SearchHits hits = response.getHits();
-        for (SearchHit hit : hits) {
-            String json = hit.getSourceAsString();
-            InfoBO infoBO = new Gson().fromJson(json, InfoBO.class);
-            infoBO.setBody("");
-            for (Terms.Bucket bucket : terms.getBuckets()) {
-                if (infoBO.getSite().equals(bucket.getKey())) {
-                    infoBO.setCount(bucket.getDocCount());
-                    result.add(new UrlBO(bucket.getKeyAsString(), bucket.getDocCount(), Collections.singletonList(infoBO)));
-                }
-            }
+        List<UrlBO> result = new ArrayList<>();
+        for (Terms.Bucket bucket : terms.getBuckets()){
+            result.add(new UrlBO(bucket.getKeyAsString(),bucket.getDocCount(),null));
         }
-        if (result.size() > 0) {
-            List<UrlBO> sortList = result.stream().sorted(Comparator.comparing(UrlBO::getCount).reversed())
-                    .collect(Collectors.toList());
-            page.setData(sortList);
-        }
-        return page;
+        return result.parallelStream().sorted(Comparator.comparing(UrlBO::getCount).reversed()).collect(Collectors.toList());
     }
 
     public Page<InfoBO> urlsPage(QueryBaseForm form) {
