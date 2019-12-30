@@ -24,6 +24,7 @@ import org.elasticsearch.search.aggregations.metrics.MaxAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.ParsedTopHits;
 import org.elasticsearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -164,7 +165,8 @@ public class EsSearchService {
         sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
                 .size(form.getPageSize())
                 .sort("@timestamp", SortOrder.DESC);
-        sourceBuilder.fetchSource(INCLUDE_SOURCE_IP, null);
+
+        sourceBuilder.fetchSource(INCLUDE_SOURCE_IP, null).collapse(new CollapseBuilder("host.keyword"));
         sourceBuilder.query(QueryBuilders.termQuery("state", 1));
         sourceBuilder.query(getBoolQueryWithQueryForm(form));
 
@@ -200,8 +202,9 @@ public class EsSearchService {
             result.add(bo);
         }
         if (result.size() > 0) {
-            page.setData(result);
+            page.setData(result.parallelStream().sorted(Comparator.comparing(InfoBO::getCount).reversed()).collect(Collectors.toList()));
         }
+
         return page;
     }
 
@@ -296,6 +299,7 @@ public class EsSearchService {
         BoolQueryBuilder boolQueryBuilder = getBoolQueryWithQueryForm(form);
         boolQueryBuilder.must(QueryBuilders.existsQuery("site"));
         sourceBuilder.query(boolQueryBuilder);
+
         TermsAggregationBuilder aggregation = AggregationBuilders.terms(termName).field("site.keyword");
         aggregation.size(SIZE).order(BucketOrder.aggregation("timestamp_order", false));
 
