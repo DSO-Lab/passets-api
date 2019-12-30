@@ -279,6 +279,7 @@ public class EsSearchService {
                     }
                     if (url.equals(bucket.getKey())) {
                         infoBO.setBody("");
+                        infoBO.setCount(bucket.getDocCount());
                         result.add(new UrlBO(bucket.getKeyAsString(), bucket.getDocCount(), Collections.singletonList(infoBO)));
                     }
                 }
