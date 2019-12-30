@@ -7,12 +7,12 @@ import lombok.Data;
 @Data
 public class BaseForm {
 
-    @SerializedName("ps")
-    @JsonProperty("ps")
+    @SerializedName("page_size")
+    @JsonProperty("page_size")
     private Integer pageSize;
 
-    @SerializedName("pi")
-    @JsonProperty("pi")
+    @SerializedName("current_page")
+    @JsonProperty("current_page")
     private Integer currentPage;
 
 }

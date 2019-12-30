@@ -2,6 +2,7 @@ package com.defvul.passets.api.interceptor;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -22,6 +23,9 @@ public class SecretInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            return true;
+        }
         String secret = request.getHeader("X-Auth-Secret");
         boolean result = StringUtils.isNotBlank(secret) && this.secret.equals(secret);
         if (!result) {
