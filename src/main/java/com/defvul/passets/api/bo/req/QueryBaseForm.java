@@ -44,5 +44,10 @@ public class QueryBaseForm extends BaseForm{
     @SerializedName("category_id")
     @JsonProperty("category_id")
     private List<Long> categoryId;
+
+    @ApiModelProperty(value = "是否全字段", notes = "body, data等字段会比较大")
+    @SerializedName("full_field")
+    @JsonProperty("full_field")
+    private boolean fullField;
 }
 

@@ -59,6 +59,24 @@ public class EsSearchService {
             "host",
             "url",
             "url_tpl",
+            "header",
+            "site",
+            "apps",
+            "inner",
+            "path",
+            "title",
+            "ip",
+    };
+
+    private static final String[] INCLUDE_SOURCE_ALL = new String[]{
+            "code",
+            "@timestamp",
+            "pro",
+            "type",
+            "port",
+            "host",
+            "url",
+            "url_tpl",
             "server",
             "header",
             "site",
@@ -202,7 +220,7 @@ public class EsSearchService {
         urlsChild.size(SIZE);
 
         TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topName).size(1).sort("@timestamp", SortOrder.DESC);
-        topHitsAggregationBuilder.fetchSource(INCLUDE_SOURCE, null);
+        topHitsAggregationBuilder.fetchSource(form.isFullField() ? INCLUDE_SOURCE_ALL : INCLUDE_SOURCE, null);
         urlsChild.subAggregation(topHitsAggregationBuilder);
 
         aggregation.subAggregation(urlsChild);
@@ -234,7 +252,7 @@ public class EsSearchService {
         return result;
     }
 
-    public List<UrlBO> urlAll(QueryBaseForm form){
+    public List<UrlBO> urlAll(QueryBaseForm form) {
         String termName = "urls";
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
@@ -257,8 +275,8 @@ public class EsSearchService {
         Terms terms = response.getAggregations().get(termName);
 
         List<UrlBO> result = new ArrayList<>();
-        for (Terms.Bucket bucket : terms.getBuckets()){
-            result.add(new UrlBO(bucket.getKeyAsString(),bucket.getDocCount(),null));
+        for (Terms.Bucket bucket : terms.getBuckets()) {
+            result.add(new UrlBO(bucket.getKeyAsString(), bucket.getDocCount(), null));
         }
         return result.parallelStream().sorted(Comparator.comparing(UrlBO::getCount).reversed()).collect(Collectors.toList());
     }
@@ -315,6 +333,46 @@ public class EsSearchService {
                     .sorted(Comparator.comparing(InfoBO::getTimestamp).reversed()).collect(Collectors.toList()));
         }
         return page;
+    }
+
+
+    public List<InfoBO> urlChild(QueryBaseForm form) {
+        SearchRequest request = getSearchRequest();
+        SearchSourceBuilder sourceBuilder = getSourceBuilder();
+
+        sourceBuilder.query(getBoolQueryWithQueryForm(form));
+
+        String topName = "top_score_hits";
+        String childTermName = "urls_child";
+        TermsAggregationBuilder urlsChild = AggregationBuilders.terms(childTermName).field("url_tpl.keyword");
+        urlsChild.size(SIZE);
+
+
+        TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topName).size(1).sort("@timestamp", SortOrder.DESC);
+        topHitsAggregationBuilder.fetchSource(form.isFullField() ? INCLUDE_SOURCE_ALL : INCLUDE_SOURCE, null);
+        urlsChild.subAggregation(topHitsAggregationBuilder);
+
+
+        sourceBuilder.aggregation(urlsChild);
+
+        request.source(sourceBuilder);
+        SearchResponse response = search(request);
+        if (response == null) {
+            return Collections.emptyList();
+        }
+
+        Terms terms = response.getAggregations().get(childTermName);
+        List<InfoBO> result = new ArrayList<>();
+        for (Terms.Bucket bucket : terms.getBuckets()) {
+            long count = bucket.getDocCount();
+            ParsedTopHits hits = bucket.getAggregations().get(topName);
+            String json = hits.getHits().getAt(0).getSourceAsString();
+            InfoBO bo = new Gson().fromJson(json, InfoBO.class);
+            bo.setCount(count);
+            result.add(bo);
+        }
+        return result;
+
     }
 
     private BoolQueryBuilder getBoolQueryWithQueryForm(QueryBaseForm form) {
@@ -382,6 +440,7 @@ public class EsSearchService {
 
     private SearchResponse search(SearchRequest request) {
         try {
+            log.debug("ES请求，地址: GET {}/_search, 内容: {}", request.indices()[0], request.source());
             return client.search(request, RequestOptions.DEFAULT);
         } catch (IOException e) {
             log.error(ExceptionUtils.getStackTrace(e));
@@ -399,4 +458,5 @@ public class EsSearchService {
         sourceBuilder.timeout(new TimeValue(60, TimeUnit.SECONDS));
         return sourceBuilder;
     }
+
 }
