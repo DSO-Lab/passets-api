@@ -242,7 +242,9 @@ public class EsSearchService {
                 .size(form.getPageSize())
                 .fetchSource(INCLUDE_SOURCE, null)
                 .sort("@timestamp", SortOrder.DESC);
-        sourceBuilder.query(getBoolQueryWithQueryForm(form));
+        BoolQueryBuilder boolQueryBuilder = getBoolQueryWithQueryForm(form);
+        boolQueryBuilder.must(QueryBuilders.existsQuery("site"));
+        sourceBuilder.query(boolQueryBuilder);
 
         TermsAggregationBuilder aggregation = AggregationBuilders.terms(termName).field("site.keyword");
         aggregation.size(SIZE).order(BucketOrder.aggregation("timestamp_order", false));
@@ -271,17 +273,11 @@ public class EsSearchService {
         for (SearchHit hit : hits) {
             String json = hit.getSourceAsString();
             InfoBO infoBO = new Gson().fromJson(json, InfoBO.class);
-            if (infoBO.getUrl() != null) {
-                for (Terms.Bucket bucket : terms.getBuckets()) {
-                    String url = infoBO.getSite() != null ? infoBO.getSite() : infoBO.getUrl();
-                    if (url.endsWith("/")) {
-                        url = url.substring(0, url.length() - 1);
-                    }
-                    if (url.equals(bucket.getKey())) {
-                        infoBO.setBody("");
-                        infoBO.setCount(bucket.getDocCount());
-                        result.add(new UrlBO(bucket.getKeyAsString(), bucket.getDocCount(), Collections.singletonList(infoBO)));
-                    }
+            infoBO.setBody("");
+            for (Terms.Bucket bucket : terms.getBuckets()) {
+                if (infoBO.getSite().equals(bucket.getKey())) {
+                    infoBO.setCount(bucket.getDocCount());
+                    result.add(new UrlBO(bucket.getKeyAsString(), bucket.getDocCount(), Collections.singletonList(infoBO)));
                 }
             }
         }
@@ -305,8 +301,9 @@ public class EsSearchService {
                 .size(form.getPageSize())
                 .fetchSource(INCLUDE_SOURCE, null)
                 .sort("@timestamp", SortOrder.DESC);
-        sourceBuilder.query(getBoolQueryWithQueryForm(form));
-
+        BoolQueryBuilder boolQueryBuilder = getBoolQueryWithQueryForm(form);
+        boolQueryBuilder.must(QueryBuilders.existsQuery("site"));
+        sourceBuilder.query(boolQueryBuilder);
         TermsAggregationBuilder aggregation = AggregationBuilders.terms(termName).field("site.keyword");
         aggregation.size(SIZE).order(BucketOrder.aggregation("timestamp_order", false));
 
@@ -365,8 +362,6 @@ public class EsSearchService {
         // url
         if (StringUtils.isNotBlank(form.getUrl())) {
             boolQueryBuilder.must(QueryBuilders.termQuery("site.keyword", form.getUrl()));
-            boolQueryBuilder.must(QueryBuilders.termQuery("url.keyword", form.getUrl() + "/"));
-            boolQueryBuilder.must(QueryBuilders.termQuery("url_tpl.keyword", form.getUrl() + "/"));
         }
 
         // 指纹
