@@ -31,6 +31,9 @@ public class QueryBaseForm extends BaseForm{
     @ApiModelProperty(value = "URL")
     private String url;
 
+    @ApiModelProperty(value = "站点")
+    private String site;
+
     @ApiModelProperty(value = "端口")
     private String port;
 

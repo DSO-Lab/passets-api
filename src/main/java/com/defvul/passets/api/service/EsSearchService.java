@@ -387,7 +387,7 @@ public class EsSearchService {
 
         // IP
         if (StringUtils.isNotBlank(form.getIp())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("ip", form.getIp()));
+            boolQueryBuilder.must(QueryBuilders.wildcardQuery("ip", form.getIp()));
         }
 
         // 端口
@@ -395,14 +395,19 @@ public class EsSearchService {
             boolQueryBuilder.must(QueryBuilders.termQuery("port.keyword", form.getPort()));
         }
 
+        // site
+        if (StringUtils.isNotBlank(form.getSite())) {
+            boolQueryBuilder.must(QueryBuilders.termQuery("site.keyword", form.getSite()));
+        }
+
         // url
         if (StringUtils.isNotBlank(form.getUrl())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("site.keyword", form.getUrl()));
+            boolQueryBuilder.must(QueryBuilders.matchQuery("url", form.getUrl().toLowerCase()));
         }
 
         // 指纹
         if (StringUtils.isNotBlank(form.getFinger())) {
-            boolQueryBuilder.must(QueryBuilders.fuzzyQuery("apps.name", form.getFinger().toLowerCase()));
+            boolQueryBuilder.must(QueryBuilders.wildcardQuery("apps.name", form.getFinger().toLowerCase()));
         }
 
         // 分类ID
