@@ -401,7 +401,7 @@ public class EsSearchService {
 
         // url
         if (StringUtils.isNotBlank(form.getUrl())) {
-            boolQueryBuilder.must(QueryBuilders.matchQuery("url", form.getUrl().toLowerCase()));
+            boolQueryBuilder.must(QueryBuilders.matchQuery("url", form.getUrl().toLowerCase()).operator(Operator.AND));
         }
 
         // 指纹
