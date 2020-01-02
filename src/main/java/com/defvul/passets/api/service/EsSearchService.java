@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import javax.management.Query;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -407,6 +408,15 @@ public class EsSearchService {
         // 指纹
         if (StringUtils.isNotBlank(form.getFinger())) {
             boolQueryBuilder.must(QueryBuilders.wildcardQuery("apps.name", form.getFinger().toLowerCase()));
+        }
+
+        // type
+        if (form.getPro() != null && !form.getPro().isEmpty()) {
+            BoolQueryBuilder tmpBoolQueryBuilder = QueryBuilders.boolQuery();
+            for (String pro : form.getPro()) {
+                tmpBoolQueryBuilder.should(QueryBuilders.termQuery("pro.keyword", pro));
+            }
+            boolQueryBuilder.must(tmpBoolQueryBuilder);
         }
 
         // 分类ID

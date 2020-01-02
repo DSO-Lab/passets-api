@@ -43,6 +43,9 @@ public class QueryBaseForm extends BaseForm{
     @ApiModelProperty(value = "是否内网")
     private boolean inner;
 
+    @ApiModelProperty(value = "类型", notes = "HTTP, HTTPS, TCP")
+    private List<String> pro;
+
     @ApiModelProperty(value = "分类ID")
     @SerializedName("category_id")
     @JsonProperty("category_id")
