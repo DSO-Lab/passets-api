@@ -22,7 +22,7 @@ public class SiteBO {
     private String host;
 
     @ApiModelProperty(value = "是否内网")
-    private Boolean inner;
+    private boolean inner;
 
     @ApiModelProperty(value = "状态码")
     private String code;
@@ -31,6 +31,7 @@ public class SiteBO {
     @ApiModelProperty(value = "子url数量")
     private Integer urlNum;
 
+    @SerializedName("geo_ip")
     @ApiModelProperty(value = "地理位置")
     private GeoIpVO geoIp;
 
@@ -57,5 +58,11 @@ public class SiteBO {
 
     @ApiModelProperty(value = "站点详情")
     private List<SiteInfoBO> sites;
+
+    @ApiModelProperty(value = "原始响应头")
+    private String header;
+
+    @ApiModelProperty(value = "原始响正文")
+    private String body;
 
 }

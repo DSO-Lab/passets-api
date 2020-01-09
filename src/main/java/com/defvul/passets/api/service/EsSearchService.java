@@ -1,5 +1,6 @@
 package com.defvul.passets.api.service;
 
+import com.defvul.passets.api.vo.ApplicationVO;
 import com.google.common.base.Joiner;
 
 import com.defvul.passets.api.bo.req.QueryBaseForm;
@@ -30,7 +31,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import javax.management.Query;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -107,6 +107,7 @@ public class EsSearchService {
             "@timestamp",
             "inner",
             "pro",
+            "site",
             "port",
             "apps",
             "title",
@@ -128,7 +129,6 @@ public class EsSearchService {
     private static final String[] INCLUDE_SOURCE_HOST = new String[]{
             "ip",
             "inner",
-            "site",
             "apps.os",
             "geoip",
             "title",
@@ -152,10 +152,21 @@ public class EsSearchService {
             "title",
     };
 
+    private static final String[] INCLUDE_SOURCE_SITE_INFO_ALL = new String[]{
+            "ip",
+            "inner",
+            "site",
+            "apps",
+            "title",
+            "header",
+            "host",
+            "geoip",
+            "body",
+    };
 
     private static final int SIZE = 2147483647;
 
-    private static int total = 0;
+    private static int total;
 
     @PostConstruct
     public void init() {
@@ -432,10 +443,10 @@ public class EsSearchService {
 
     public Page<HostBO> host(QueryBaseForm form) {
         Page<HostBO> page = new Page<>();
+        List<HostBO> hostBOList = queryHost(form, true);
         page.setTotal(total);
         page.setPageSize(form.getPageSize());
         page.setCurrentPage(form.getCurrentPage());
-        List<HostBO> hostBOList = queryHost(form, true);
         if (!hostBOList.isEmpty()) {
             page.setData(hostBOList);
         }
@@ -569,17 +580,22 @@ public class EsSearchService {
 
     public Page<SiteBO> sitePage(QueryBaseForm form) {
         Page<SiteBO> page = new Page<>();
+        List<SiteBO> siteBOList = querySite(form, true);
         page.setTotal(total);
         page.setPageSize(form.getPageSize());
         page.setCurrentPage(form.getCurrentPage());
-        List<SiteBO> siteBOList = querySite(form, true);
         page.setData(siteBOList.parallelStream().sorted(Comparator.comparing(SiteBO::getTimestamp).reversed()).collect(Collectors.toList()));
         return page;
     }
 
     public SiteBO siteInfo(QueryBaseForm form) {
+        form.setFullField(true);
+        SiteBO siteBO = new SiteBO();
         List<SiteBO> siteBOList = querySite(form, false);
-        return siteBOList.get(0);
+        if (siteBOList.size() > 0) {
+            siteBO = siteBOList.get(0);
+        }
+        return new SiteBO();
     }
 
     private List<SiteBO> querySite(QueryBaseForm form, boolean page) {
@@ -588,14 +604,18 @@ public class EsSearchService {
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
         if (page) {
-            sourceBuilder.query(getBoolQueryWithQueryForm(form));
+            BoolQueryBuilder boolQueryBuilder = getBoolQueryWithQueryForm(form);
+            boolQueryBuilder.filter(QueryBuilders.termQuery("pro.keyword", "HTTP"));
+            sourceBuilder.query(boolQueryBuilder);
             sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
                     .size(form.getPageSize());
         } else {
             sourceBuilder.query(getBoolQueryFormInfo(form));
+            sourceBuilder.size(1);
         }
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
-        sourceBuilder.fetchSource(INCLUDE_SOURCE_SITE, null).collapse(new CollapseBuilder("site.keyword"));
+        sourceBuilder.fetchSource(form.isFullField() ? INCLUDE_SOURCE_SITE_INFO_ALL : INCLUDE_SOURCE_SITE, null)
+                .collapse(new CollapseBuilder("site.keyword"));
 
         TermsAggregationBuilder urlsAgg = AggregationBuilders.terms(termName).field("site.keyword").size(SIZE);
         urlsAgg.order(BucketOrder.aggregation("timestamp_order", false));
@@ -625,7 +645,6 @@ public class EsSearchService {
             SiteBO siteInfo = querySiteInfo(form, siteBO, page);
             siteList.add(siteInfo);
         }
-
         return siteList;
     }
 
@@ -680,21 +699,24 @@ public class EsSearchService {
             siteList.add(siteInfo);
 
             count = bucket.getDocCount();
-            siteInfo.getApps().parallelStream().forEach(a -> {
-                if (a.getName() != null) {
-                    apps.add(a.getName());
+            if (siteInfo.getApps().size() > 0) {
+                for (ApplicationVO app : siteInfo.getApps()) {
+                    if (StringUtils.isNotBlank(app.getName())) {
+                        apps.add(app.getName());
+                    }
+                    if (!app.getCategories().isEmpty()) {
+                        app.getCategories().parallelStream().filter(c -> StringUtils.isNotBlank(c.getName()))
+                                .peek(c -> siteType.add(c.getName())).collect(Collectors.toSet());
+                    }
                 }
-                if (!a.getCategories().isEmpty()) {
-                    a.getCategories().parallelStream().forEach(c -> siteType.add(c.getName()));
-                }
-            });
+            }
         }
         site.setCount(count);
         site.setUrlNum(siteList.size());
-        site.setApp(page ? Joiner.on(',').join(apps) : "");
+        site.setApp(page ? Joiner.on(',').join(apps) : " ");
         site.setApps(page ? Collections.emptySet() : apps);
         site.setSiteType(page ? Collections.emptySet() : siteType);
-        site.setSites(page ? null : siteList);
+        site.setSites(page ? Collections.emptyList() : siteList);
         return site;
     }
 

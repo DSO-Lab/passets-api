@@ -25,6 +25,9 @@ public class HostListBO {
     @ApiModelProperty(value = "数据类型")
     private String pro;
 
+    @ApiModelProperty(value = "站点")
+    private String site;
+
     @ApiModelProperty(value = "指纹")
     private List<ApplicationVO> apps;
 
