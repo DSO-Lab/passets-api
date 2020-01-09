@@ -1,7 +1,9 @@
 package com.defvul.passets.api.controller;
 
 import com.defvul.passets.api.bo.req.QueryBaseForm;
+import com.defvul.passets.api.bo.res.HostBO;
 import com.defvul.passets.api.bo.res.InfoBO;
+import com.defvul.passets.api.bo.res.SiteBO;
 import com.defvul.passets.api.bo.res.UrlBO;
 import com.defvul.passets.api.service.EsSearchService;
 import com.defvul.passets.api.vo.Page;
@@ -61,5 +63,29 @@ public class IndexController {
     @ApiOperation(value = "查询所有子链接")
     public List<InfoBO> urlChild(@RequestBody QueryBaseForm form) {
         return esSearchService.urlChild(form);
+    }
+
+    @PostMapping("/host/page")
+    @ApiOperation(value = "主机列表")
+    public Page<HostBO> host(@RequestBody QueryBaseForm form) {
+        return esSearchService.host(form);
+    }
+
+    @PostMapping("/host/info")
+    @ApiOperation(value = "主机列表")
+    public HostBO infoHost(@RequestBody QueryBaseForm form) {
+        return esSearchService.infoHost(form);
+    }
+
+    @PostMapping("/site/page")
+    @ApiOperation(value = "站点列表")
+    public Page<SiteBO> site(@RequestBody QueryBaseForm form) {
+        return esSearchService.sitePage(form);
+    }
+
+    @PostMapping("/site/info")
+    @ApiOperation(value = "站点详情")
+    public SiteBO siteInfo(@RequestBody QueryBaseForm form) {
+        return esSearchService.siteInfo(form);
     }
 }

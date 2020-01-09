@@ -84,4 +84,10 @@ public class InfoBO {
     @ApiModelProperty(value = "网站标题", notes = "HTTP类型数据")
     private String title;
 
+    @ApiModelProperty(value = "首次发现时间")
+    private Date minAsString;
+
+    @ApiModelProperty(value = "最后发现时间")
+    private Date maxAsString;
+
 }
