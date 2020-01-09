@@ -589,6 +589,8 @@ public class EsSearchService {
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
         if (page) {
             sourceBuilder.query(getBoolQueryWithQueryForm(form));
+            sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
+                    .size(form.getPageSize());
         } else {
             sourceBuilder.query(getBoolQueryFormInfo(form));
         }
