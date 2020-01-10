@@ -31,7 +31,8 @@ public class SiteBO {
     @ApiModelProperty(value = "子url数量")
     private Integer urlNum;
 
-    @SerializedName("geo_ip")
+    @SerializedName("geoip")
+    @JsonProperty("geoip")
     @ApiModelProperty(value = "地理位置")
     private GeoIpVO geoIp;
 
