@@ -135,6 +135,7 @@ public class EsSearchService {
     };
 
     private static final String[] INCLUDE_SOURCE_SITE = new String[]{
+            "ip",
             "host",
             "inner",
             "site",

@@ -19,6 +19,9 @@ public class SiteBO {
     private long count;
 
     @ApiModelProperty(value = "主机地址")
+    private String ip;
+
+    @ApiModelProperty(value = "主机地址")
     private String host;
 
     @ApiModelProperty(value = "是否内网")
