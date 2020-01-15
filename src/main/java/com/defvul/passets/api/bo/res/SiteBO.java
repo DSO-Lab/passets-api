@@ -19,6 +19,9 @@ public class SiteBO {
     private long count;
 
     @ApiModelProperty(value = "主机地址")
+    private String ip;
+
+    @ApiModelProperty(value = "主机地址")
     private String host;
 
     @ApiModelProperty(value = "是否内网")
@@ -31,7 +34,8 @@ public class SiteBO {
     @ApiModelProperty(value = "子url数量")
     private Integer urlNum;
 
-    @SerializedName("geo_ip")
+    @SerializedName("geoip")
+    @JsonProperty("geoip")
     @ApiModelProperty(value = "地理位置")
     private GeoIpVO geoIp;
 
