@@ -7,10 +7,7 @@ import com.defvul.passets.api.vo.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -69,10 +66,10 @@ public class IndexController {
         return esSearchService.host(form);
     }
 
-    @PostMapping("/host/info")
+    @GetMapping("/host/info/{ip}")
     @ApiOperation(value = "主机列表")
-    public HostBO infoHost(@RequestBody QueryBaseForm form) {
-        return esSearchService.infoHost(form);
+    public HostBO infoHost(@PathVariable("ip") String ip) {
+        return esSearchService.infoHost(ip);
     }
 
     @PostMapping("/site/page")
@@ -81,21 +78,21 @@ public class IndexController {
         return esSearchService.sitePage(form);
     }
 
-    @PostMapping("/site/info")
+    @GetMapping("/site/info/{site}")
     @ApiOperation(value = "站点详情")
-    public SiteBO siteInfo(@RequestBody QueryBaseForm form) {
-        return esSearchService.siteInfo(form);
+    public SiteBO siteInfo(@PathVariable("ip") String site) {
+        return esSearchService.siteInfo(site);
     }
 
-    @GetMapping("/host/top")
+    @PostMapping("/host/top")
     @ApiOperation(value = "主机top")
-    public TopBO hostTop() {
-        return esSearchService.hostTop();
+    public TopBO hostTop(@RequestBody QueryBaseForm form) {
+        return esSearchService.hostTop(form);
     }
 
-    @GetMapping("/site/top")
+    @PostMapping("/site/top")
     @ApiOperation(value = "站点top")
-    public TopBO siteTop() {
-        return esSearchService.siteTop();
+    public TopBO siteTop(@RequestBody QueryBaseForm form) {
+        return esSearchService.siteTop(form);
     }
 }

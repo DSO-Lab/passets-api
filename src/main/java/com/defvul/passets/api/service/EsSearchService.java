@@ -455,9 +455,13 @@ public class EsSearchService {
         return page;
     }
 
-    public HostBO infoHost(QueryBaseForm form) {
+    public HostBO infoHost(String ip) {
         HostBO hostBO = new HostBO();
+
+        QueryBaseForm form = new QueryBaseForm();
         form.setFullField(true);
+        form.setIp(ip);
+
         List<HostBO> hostBOList = queryHost(form, false);
         if (!hostBOList.isEmpty()) {
             hostBO = hostBOList.get(0);
@@ -590,7 +594,9 @@ public class EsSearchService {
         return page;
     }
 
-    public SiteBO siteInfo(QueryBaseForm form) {
+    public SiteBO siteInfo(String site) {
+        QueryBaseForm form = new QueryBaseForm();
+        form.setSite(site);
         form.setFullField(true);
         SiteBO siteBO = new SiteBO();
         List<SiteBO> siteBOList = querySite(form, false);
@@ -723,15 +729,15 @@ public class EsSearchService {
         return site;
     }
 
-    public TopBO hostTop() {
-        return top(0);
+    public TopBO hostTop(QueryBaseForm form) {
+        return top(form, 0);
     }
 
-    public TopBO siteTop() {
-        return top(1);
+    public TopBO siteTop(QueryBaseForm form) {
+        return top(form, 1);
     }
 
-    private TopBO top(int type) {
+    private TopBO top(QueryBaseForm form, int type) {
         String pro = "pros";
         String app = "apps";
         String inner = "inners";
@@ -746,27 +752,27 @@ public class EsSearchService {
         ExecutorService executorService = Executors.newFixedThreadPool(6);
         Set<Callable<String>> callables = new HashSet<>();
         callables.add(() -> {
-            topInfoMap.put(pro, topInfo(pro, "pro.keyword", type));
+            topInfoMap.put(pro, topInfo(form, pro, "pro.keyword", type));
             return "pro";
         });
         callables.add(() -> {
-            topInfoMap.put(app, topInfo(app, "apps.name.keyword", type));
+            topInfoMap.put(app, topInfo(form, app, "apps.name.keyword", type));
             return "app";
         });
         callables.add(() -> {
-            topInfoMap.put(inner, topInfo(inner, "inner", type));
+            topInfoMap.put(inner, topInfo(form, inner, "inner", type));
             return "inner";
         });
         callables.add(() -> {
-            topInfoMap.put(port, topInfo(port, "port.keyword", type));
+            topInfoMap.put(port, topInfo(form, port, "port.keyword", type));
             return "port";
         });
         callables.add(() -> {
-            topInfoMap.put(country, topInfo(country, "geoip.country_name.keyword", type));
+            topInfoMap.put(country, topInfo(form, country, "geoip.country_name.keyword", type));
             return "country";
         });
         callables.add(() -> {
-            topInfoMap.put(os, topInfo(os, "apps.os.keyword", type));
+            topInfoMap.put(os, topInfo(form, os, "apps.os.keyword", type));
             return "os";
         });
 
@@ -788,11 +794,12 @@ public class EsSearchService {
         return topBO;
     }
 
-    private List<TopInfoBO> topInfo(String termName, String fieldName, int type) {
+    private List<TopInfoBO> topInfo(QueryBaseForm form, String termName, String fieldName, int type) {
         String statsCount = "stats_count";
 
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
+        sourceBuilder.query(getBoolQueryWithQueryForm(form));
 
         TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(termName).field(fieldName).size(SIZE);
 
@@ -850,7 +857,7 @@ public class EsSearchService {
 
         // IP
         if (StringUtils.isNotBlank(form.getIp())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("ip", form.getIp()));
+            boolQueryBuilder.must(QueryBuilders.termQuery("ip.keyword", form.getIp()));
         }
 
         // site
@@ -891,6 +898,16 @@ public class EsSearchService {
         // 指纹
         if (StringUtils.isNotBlank(form.getFinger())) {
             boolQueryBuilder.must(QueryBuilders.termQuery("apps.name", form.getFinger().toLowerCase()));
+        }
+
+        // 国家
+        if (StringUtils.isNotBlank(form.getCountry())) {
+            boolQueryBuilder.must(QueryBuilders.termQuery("geoip.country_name", form.getCountry()));
+        }
+
+        // os
+        if (StringUtils.isNotBlank(form.getOs())) {
+            boolQueryBuilder.must(QueryBuilders.termQuery("apps.os ", form.getOs()));
         }
 
         // type

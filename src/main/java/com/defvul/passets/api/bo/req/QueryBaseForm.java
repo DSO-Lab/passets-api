@@ -55,5 +55,11 @@ public class QueryBaseForm extends BaseForm{
     @SerializedName("full_field")
     @JsonProperty("full_field")
     private boolean fullField;
+
+    @ApiModelProperty(value = "国家")
+    private String country;
+
+    @ApiModelProperty(value = "操作系统")
+    private String os;
 }
 
