@@ -9,7 +9,6 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.util.List;
-import java.util.Set;
 
 @Data
 @ApiModel(description = "主机资产列表")
@@ -42,9 +41,9 @@ public class HostBO {
     private List<String> ports;
 
     @ApiModelProperty(value = "组件")
-    private Set<String> assembly;
+    private List<TopInfoBO> assembly;
 
     @ApiModelProperty(value = "协议")
-    private Set<String> services;
+    private List<TopInfoBO> services;
 
 }

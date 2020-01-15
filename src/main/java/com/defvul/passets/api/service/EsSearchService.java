@@ -466,21 +466,11 @@ public class EsSearchService {
         if (!hostBOList.isEmpty()) {
             hostBO = hostBOList.get(0);
             List<String> ports = hostBO.getHosts().parallelStream().map(HostListBO::getPort).collect(Collectors.toList());
-            Set<String> assembly = new HashSet<>();
-            Set<String> services = new HashSet<>();
-            for (HostListBO hostListBO : hostBO.getHosts()) {
-                hostListBO.getApps().parallelStream()
-                        .filter(app -> app.getName() != null)
-                        .forEach(h -> assembly.add(h.getName()));
-
-                hostListBO.getApps().parallelStream()
-                        .filter(app -> app.getService() != null)
-                        .forEach(h -> services.add(h.getService()));
-            }
             hostBO.setPorts(ports);
-            hostBO.setAssembly(assembly);
-            hostBO.setServices(services);
         }
+        Map<String, List<TopInfoBO>> topInfoMap = queryIpInfoTop(form);
+        hostBO.setAssembly(topInfoMap.get("finger"));
+        hostBO.setServices(topInfoMap.get("service"));
         return hostBO;
     }
 
@@ -530,6 +520,61 @@ public class EsSearchService {
             hostBOList.add(hostBO);
         }
         return hostBOList;
+    }
+
+    private Map<String, List<TopInfoBO>> queryIpInfoTop(QueryBaseForm form) {
+        String fingerName = "finger_info";
+        String serviceName = "service_info";
+        String portStats = "port_count";
+
+        SearchRequest request = getSearchRequest();
+        SearchSourceBuilder sourceBuilder = getSourceBuilder();
+        sourceBuilder.query(getBoolQueryFormInfo(form));
+
+        TermsAggregationBuilder appNameAgg = AggregationBuilders.terms(fingerName).field("apps.name.keyword").size(SIZE);
+
+        TermsAggregationBuilder serviceNameAgg = AggregationBuilders.terms(serviceName).field("apps.service.keyword").size(SIZE);
+
+        TermsAggregationBuilder portAgg = AggregationBuilders.terms(portStats).field("port.keyword").size(SIZE);
+
+        appNameAgg.subAggregation(portAgg);
+        serviceNameAgg.subAggregation(portAgg);
+
+        sourceBuilder.aggregation(appNameAgg).aggregation(serviceNameAgg);
+
+        log.info("ip_top_json: {}", sourceBuilder);
+        request.source(sourceBuilder);
+
+        SearchResponse response = search(request);
+        if (response == null) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, List<TopInfoBO>> topInfoMap = new HashMap<>();
+
+        Terms fingerTerms = response.getAggregations().get(fingerName);
+        List<TopInfoBO> topFingerList = new ArrayList<>();
+        for (Terms.Bucket bucket : fingerTerms.getBuckets()) {
+            TopInfoBO topInfo = new TopInfoBO();
+            topInfo.setName(bucket.getKeyAsString());
+            Terms terms = bucket.getAggregations().get(portStats);
+            topInfo.setCount(terms.getBuckets().size());
+            topFingerList.add(topInfo);
+        }
+        topInfoMap.put("finger", topFingerList.stream().sorted(Comparator.comparing(TopInfoBO::getCount).reversed()).collect(Collectors.toList()));
+
+        Terms serviceTerms = response.getAggregations().get(serviceName);
+        List<TopInfoBO> topServiceList = new ArrayList<>();
+        for (Terms.Bucket bucket : serviceTerms.getBuckets()) {
+            TopInfoBO topInfo = new TopInfoBO();
+            topInfo.setName(bucket.getKeyAsString());
+            Terms terms = bucket.getAggregations().get(portStats);
+            topInfo.setCount(terms.getBuckets().size());
+            topServiceList.add(topInfo);
+        }
+        topInfoMap.put("service", topServiceList.stream().sorted(Comparator.comparing(TopInfoBO::getCount).reversed()).collect(Collectors.toList()));
+
+        return topInfoMap;
     }
 
     private List<HostListBO> queryHostAndPort(QueryBaseForm form, boolean page) {
@@ -603,7 +648,7 @@ public class EsSearchService {
         if (siteBOList.size() > 0) {
             siteBO = siteBOList.get(0);
         }
-        log.info("siteBO: {}", siteBO);
+        siteBO.setApps(querySiteInfoTop(form));
         return siteBO;
     }
 
@@ -691,7 +736,7 @@ public class EsSearchService {
             return new SiteBO();
         }
 
-        List<SiteInfoBO> siteList = new ArrayList<>();
+        List<SiteInfoBO> siteInfoList = new ArrayList<>();
         Set<String> apps = new HashSet<>();
         Set<String> siteType = new HashSet<>();
         Terms terms = response.getAggregations().get(urlsChild);
@@ -705,7 +750,7 @@ public class EsSearchService {
             ParsedStats parsedStats = bucket.getAggregations().get(stats);
             siteInfo.setMinDate(parseDate(parsedStats.getMinAsString()));
             siteInfo.setMaxDate(parseDate(parsedStats.getMaxAsString()));
-            siteList.add(siteInfo);
+            siteInfoList.add(siteInfo);
 
             count = bucket.getDocCount();
             if (siteInfo.getApps().size() > 0) {
@@ -721,13 +766,50 @@ public class EsSearchService {
             }
         }
         site.setCount(count);
-        site.setUrlNum(siteList.size());
+        site.setUrlNum(siteInfoList.size());
         site.setApp(page ? Joiner.on(',').join(apps) : " ");
-        site.setApps(page ? Collections.emptySet() : apps);
         site.setSiteType(page ? Collections.emptySet() : siteType);
-        site.setSites(page ? Collections.emptyList() : siteList);
+        site.setSites(page ? Collections.emptyList() : siteInfoList);
         return site;
     }
+
+    private List<TopInfoBO> querySiteInfoTop(QueryBaseForm form) {
+        String fingerName = "finger_info";
+        String portStats = "port_count";
+
+        SearchRequest request = getSearchRequest();
+        SearchSourceBuilder sourceBuilder = getSourceBuilder();
+        sourceBuilder.query(getBoolQueryFormInfo(form));
+
+        TermsAggregationBuilder appNameAgg = AggregationBuilders.terms(fingerName).field("apps.name.keyword").size(SIZE);
+
+        TermsAggregationBuilder portAgg = AggregationBuilders.terms(portStats).field("port.keyword").size(SIZE);
+
+        appNameAgg.subAggregation(portAgg);
+
+        sourceBuilder.aggregation(appNameAgg);
+
+        log.info("site_top_json: {}", sourceBuilder);
+        request.source(sourceBuilder);
+
+        SearchResponse response = search(request);
+        if (response == null) {
+            return Collections.emptyList();
+        }
+
+        Terms fingerTerms = response.getAggregations().get(fingerName);
+        List<TopInfoBO> topFingerList = new ArrayList<>();
+        for (Terms.Bucket bucket : fingerTerms.getBuckets()) {
+            TopInfoBO topInfo = new TopInfoBO();
+            topInfo.setName(bucket.getKeyAsString());
+            Terms terms = bucket.getAggregations().get(portStats);
+            topInfo.setCount(terms.getBuckets().size());
+            topFingerList.add(topInfo);
+        }
+
+        return topFingerList.stream().sorted(Comparator.comparing(TopInfoBO::getCount).reversed()).collect(Collectors.toList());
+    }
+
 
     public TopBO hostTop(QueryBaseForm form) {
         return top(form, 0);

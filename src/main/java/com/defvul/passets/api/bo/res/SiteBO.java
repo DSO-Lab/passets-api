@@ -49,7 +49,7 @@ public class SiteBO {
     private String app;
 
     @ApiModelProperty(value = "指纹集")
-    private Set<String> apps;
+    private List<TopInfoBO> apps;
 
     @SerializedName("site_type")
     @ApiModelProperty(value = "站点类型")
