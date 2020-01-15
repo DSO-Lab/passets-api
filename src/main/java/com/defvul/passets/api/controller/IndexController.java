@@ -66,9 +66,9 @@ public class IndexController {
         return esSearchService.host(form);
     }
 
-    @GetMapping("/host/info/{ip}")
+    @GetMapping("/host/info")
     @ApiOperation(value = "主机列表")
-    public HostBO infoHost(@PathVariable("ip") String ip) {
+    public HostBO infoHost(@RequestParam("value") String ip) {
         return esSearchService.infoHost(ip);
     }
 
@@ -78,9 +78,9 @@ public class IndexController {
         return esSearchService.sitePage(form);
     }
 
-    @GetMapping("/site/info/{site}")
+    @GetMapping("/site/info")
     @ApiOperation(value = "站点详情")
-    public SiteBO siteInfo(@PathVariable("ip") String site) {
+    public SiteBO siteInfo(@RequestParam("value") String site) {
         return esSearchService.siteInfo(site);
     }
 
