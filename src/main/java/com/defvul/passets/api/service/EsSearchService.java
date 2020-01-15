@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
@@ -162,6 +162,7 @@ public class EsSearchService {
             "host",
             "geoip",
             "body",
+            "@timestamp",
     };
 
     private static final int SIZE = 2147483647;
@@ -465,11 +466,11 @@ public class EsSearchService {
             for (HostListBO hostListBO : hostBO.getHosts()) {
                 hostListBO.getApps().parallelStream()
                         .filter(app -> app.getName() != null)
-                        .map(h -> assembly.add(h.getName())).collect(Collectors.toList());
+                        .forEach(h -> assembly.add(h.getName()));
 
                 hostListBO.getApps().parallelStream()
                         .filter(app -> app.getService() != null)
-                        .map(h -> services.add(h.getService())).collect(Collectors.toList());
+                        .forEach(h -> services.add(h.getService()));
             }
             hostBO.setPorts(ports);
             hostBO.setAssembly(assembly);
@@ -595,7 +596,8 @@ public class EsSearchService {
         if (siteBOList.size() > 0) {
             siteBO = siteBOList.get(0);
         }
-        return new SiteBO();
+        log.info("siteBO: {}", siteBO);
+        return siteBO;
     }
 
     private List<SiteBO> querySite(QueryBaseForm form, boolean page) {
@@ -706,7 +708,7 @@ public class EsSearchService {
                     }
                     if (!app.getCategories().isEmpty()) {
                         app.getCategories().parallelStream().filter(c -> StringUtils.isNotBlank(c.getName()))
-                                .peek(c -> siteType.add(c.getName())).collect(Collectors.toSet());
+                                .forEach(c -> siteType.add(c.getName()));
                     }
                 }
             }
@@ -718,6 +720,125 @@ public class EsSearchService {
         site.setSiteType(page ? Collections.emptySet() : siteType);
         site.setSites(page ? Collections.emptyList() : siteList);
         return site;
+    }
+
+    public TopBO hostTop() {
+        return top(0);
+    }
+
+    public TopBO siteTop() {
+        return top(1);
+    }
+
+    private TopBO top(int type) {
+        String pro = "pros";
+        String app = "apps";
+        String inner = "inners";
+        String port = "ports";
+        String country = "countrys";
+        String os = "os";
+
+        TopBO topBO = new TopBO();
+
+        Map<String, List<TopInfoBO>> topInfoMap = new HashMap<>(16);
+
+        ExecutorService executorService = Executors.newFixedThreadPool(6);
+        Set<Callable<String>> callables = new HashSet<>();
+        callables.add(() -> {
+            topInfoMap.put(pro, topInfo(pro, "pro.keyword", type));
+            return "pro";
+        });
+        callables.add(() -> {
+            topInfoMap.put(app, topInfo(app, "apps.name.keyword", type));
+            return "app";
+        });
+        callables.add(() -> {
+            topInfoMap.put(inner, topInfo(inner, "inner", type));
+            return "inner";
+        });
+        callables.add(() -> {
+            topInfoMap.put(port, topInfo(port, "port.keyword", type));
+            return "port";
+        });
+        callables.add(() -> {
+            topInfoMap.put(country, topInfo(country, "geoip.country_name.keyword", type));
+            return "country";
+        });
+        callables.add(() -> {
+            topInfoMap.put(os, topInfo(os, "apps.os.keyword", type));
+            return "os";
+        });
+
+        List<Future<String>> futures;
+        try {
+            futures = executorService.invokeAll(callables);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        executorService.shutdown();
+
+        topBO.setPros(topInfoMap.get(pro));
+        topBO.setApps(topInfoMap.get(app));
+        topBO.setInners(topInfoMap.get(inner));
+        topBO.setPorts(topInfoMap.get(port));
+        topBO.setCountry(topInfoMap.get(country));
+        topBO.setOs(topInfoMap.get(os));
+
+        return topBO;
+    }
+
+    private List<TopInfoBO> topInfo(String termName, String fieldName, int type) {
+        String statsCount = "stats_count";
+
+        SearchRequest request = getSearchRequest();
+        SearchSourceBuilder sourceBuilder = getSourceBuilder();
+
+        TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(termName).field(fieldName).size(SIZE);
+
+        TermsAggregationBuilder statsCountAgg = AggregationBuilders.terms(statsCount).size(SIZE);
+
+        if (type == 0) {
+            if ("pros".equals(termName)) {
+                statsCountAgg.field("host.keyword");
+            } else {
+                statsCountAgg.field("ip.keyword");
+            }
+        } else {
+            statsCountAgg.field("site.keyword");
+        }
+
+        termsAggregationBuilder.subAggregation(statsCountAgg);
+
+        sourceBuilder.aggregation(termsAggregationBuilder);
+        log.info(termName + "_top_json: {}", sourceBuilder);
+        request.source(sourceBuilder);
+
+        SearchResponse response = search(request);
+        if (response == null) {
+            return Collections.emptyList();
+        }
+        Terms terms = response.getAggregations().get(termName);
+
+        return setTopInfo(terms, statsCount);
+    }
+
+    private List<TopInfoBO> setTopInfo(Terms terms, String termName) {
+        List<TopInfoBO> topList = new ArrayList<>();
+        for (Terms.Bucket bucket : terms.getBuckets()) {
+            TopInfoBO topInfo = new TopInfoBO();
+            topInfo.setName(bucket.getKeyAsString());
+            Terms nodeTerms = bucket.getAggregations().get(termName);
+            topInfo.setCount(nodeTerms.getBuckets().size());
+            topList.add(topInfo);
+        }
+        return limit(topList);
+    }
+
+    private List<TopInfoBO> limit(List<TopInfoBO> infoList) {
+        if (infoList.size() <= 5) {
+            return infoList;
+        }
+        return infoList.stream().sorted(Comparator.comparing(TopInfoBO::getCount).reversed()).limit(5L).collect(Collectors.toList());
     }
 
     private BoolQueryBuilder getBoolQueryFormInfo(QueryBaseForm form) {

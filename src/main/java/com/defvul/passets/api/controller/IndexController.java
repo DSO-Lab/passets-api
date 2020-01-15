@@ -1,15 +1,13 @@
 package com.defvul.passets.api.controller;
 
 import com.defvul.passets.api.bo.req.QueryBaseForm;
-import com.defvul.passets.api.bo.res.HostBO;
-import com.defvul.passets.api.bo.res.InfoBO;
-import com.defvul.passets.api.bo.res.SiteBO;
-import com.defvul.passets.api.bo.res.UrlBO;
+import com.defvul.passets.api.bo.res.*;
 import com.defvul.passets.api.service.EsSearchService;
 import com.defvul.passets.api.vo.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -87,5 +85,17 @@ public class IndexController {
     @ApiOperation(value = "站点详情")
     public SiteBO siteInfo(@RequestBody QueryBaseForm form) {
         return esSearchService.siteInfo(form);
+    }
+
+    @GetMapping("/host/top")
+    @ApiOperation(value = "主机top")
+    public TopBO hostTop() {
+        return esSearchService.hostTop();
+    }
+
+    @GetMapping("/site/top")
+    @ApiOperation(value = "站点top")
+    public TopBO siteTop() {
+        return esSearchService.siteTop();
     }
 }
