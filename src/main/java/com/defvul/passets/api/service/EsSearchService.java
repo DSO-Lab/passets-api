@@ -540,7 +540,7 @@ public class EsSearchService {
 
         TermsAggregationBuilder serviceNameAgg = AggregationBuilders.terms(serviceName).field("apps.service.keyword").size(SIZE);
 
-        TermsAggregationBuilder portAgg = AggregationBuilders.terms(portStats).field("port.keyword").size(SIZE);
+        TermsAggregationBuilder portAgg = AggregationBuilders.terms(portStats).field("port").size(SIZE);
 
         appNameAgg.subAggregation(portAgg);
         serviceNameAgg.subAggregation(portAgg);
@@ -788,7 +788,7 @@ public class EsSearchService {
 
         TermsAggregationBuilder appNameAgg = AggregationBuilders.terms(fingerName).field("apps.name.keyword").size(SIZE);
 
-        TermsAggregationBuilder portAgg = AggregationBuilders.terms(portStats).field("port.keyword").size(SIZE);
+        TermsAggregationBuilder portAgg = AggregationBuilders.terms(portStats).field("port").size(SIZE);
 
         appNameAgg.subAggregation(portAgg);
 
@@ -851,7 +851,7 @@ public class EsSearchService {
             return "inner";
         });
         callables.add(() -> {
-            topInfoMap.put(port, topInfo(form, port, "port.keyword", type));
+            topInfoMap.put(port, topInfo(form, port, "port", type));
             return "port";
         });
         callables.add(() -> {
@@ -886,7 +886,6 @@ public class EsSearchService {
 
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
-        sourceBuilder.query(getBoolQueryWithQueryForm(form));
 
         TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(termName).field(fieldName).size(SIZE);
 
@@ -898,8 +897,14 @@ public class EsSearchService {
             } else {
                 statsCountAgg.field("ip.keyword");
             }
+
+            sourceBuilder.query(getBoolQueryWithQueryForm(form));
         } else {
             statsCountAgg.field("site.keyword");
+
+            BoolQueryBuilder boolQueryBuilder = getBoolQueryWithQueryForm(form);
+            boolQueryBuilder.filter(QueryBuilders.boolQuery().should(QueryBuilders.existsQuery("site.keyword")));
+            sourceBuilder.query(boolQueryBuilder);
         }
 
         termsAggregationBuilder.subAggregation(statsCountAgg);
@@ -969,7 +974,7 @@ public class EsSearchService {
 
         // 端口
         if (StringUtils.isNotBlank(form.getPort())) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("port.keyword", form.getPort()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("port", form.getPort()));
         }
 
         // site
