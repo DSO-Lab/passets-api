@@ -40,8 +40,8 @@ public class QueryBaseForm extends BaseForm{
     @ApiModelProperty(value = "指纹名称")
     private String finger;
 
-    @ApiModelProperty(value = "是否内网")
-    private boolean inner;
+    @ApiModelProperty(value = "是否内网,1:内网，2：外网")
+    private Integer inner;
 
     @ApiModelProperty(value = "类型", notes = "HTTP, HTTPS, TCP")
     private List<String> pro;

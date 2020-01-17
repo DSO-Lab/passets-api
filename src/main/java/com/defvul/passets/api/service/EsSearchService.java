@@ -12,9 +12,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
@@ -151,6 +153,9 @@ public class EsSearchService {
             "site",
             "apps",
             "title",
+            "header",
+            "body",
+            "url",
     };
 
     private static final String[] INCLUDE_SOURCE_SITE_INFO_ALL = new String[]{
@@ -592,7 +597,7 @@ public class EsSearchService {
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
 
 
-        TermsAggregationBuilder portAgg = AggregationBuilders.terms(termName).field("port.keyword").size(SIZE);
+        TermsAggregationBuilder portAgg = AggregationBuilders.terms(termName).field("port").size(SIZE);
 
         TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topHist).size(1).sort("@timestamp", SortOrder.DESC);
         topHitsAggregationBuilder.fetchSource(form.isFullField() ? INCLUDE_SOURCE_HOST_INFO_ALL : INCLUDE_SOURCE_HOST_INFO, null);
@@ -635,7 +640,7 @@ public class EsSearchService {
         page.setTotal(total);
         page.setPageSize(form.getPageSize());
         page.setCurrentPage(form.getCurrentPage());
-        page.setData(siteBOList.parallelStream().sorted(Comparator.comparing(SiteBO::getTimestamp).reversed()).collect(Collectors.toList()));
+        page.setData(siteBOList);
         return page;
     }
 
@@ -699,7 +704,7 @@ public class EsSearchService {
             SiteBO siteInfo = querySiteInfo(form, siteBO, page);
             siteList.add(siteInfo);
         }
-        return siteList;
+        return siteList.parallelStream().sorted(Comparator.comparing(SiteBO::getTimestamp).reversed()).collect(Collectors.toList());
     }
 
     private SiteBO querySiteInfo(QueryBaseForm form, SiteBO site, boolean page) {
@@ -715,7 +720,7 @@ public class EsSearchService {
         }
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
 
-        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(urlsChild).field("url_tpl.keyword").size(SIZE);
+        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(urlsChild).field("path.keyword").size(SIZE);
         urlsChildAgg.order(BucketOrder.aggregation("timestamp_order", false));
 
         TopHitsAggregationBuilder topHitsAgg = AggregationBuilders.topHits(topHits)
@@ -812,11 +817,11 @@ public class EsSearchService {
 
 
     public TopBO hostTop(QueryBaseForm form) {
-        return top(form, 0);
+        return top(form, 1);
     }
 
     public TopBO siteTop(QueryBaseForm form) {
-        return top(form, 1);
+        return top(form, 2);
     }
 
     private TopBO top(QueryBaseForm form, int type) {
@@ -887,7 +892,7 @@ public class EsSearchService {
 
         TermsAggregationBuilder statsCountAgg = AggregationBuilders.terms(statsCount).size(SIZE);
 
-        if (type == 0) {
+        if (type == 1) {
             if ("pros".equals(termName)) {
                 statsCountAgg.field("host.keyword");
             } else {
@@ -935,16 +940,16 @@ public class EsSearchService {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
         // 处理过的数据
-        boolQueryBuilder.must(QueryBuilders.termQuery("state", 1));
+        boolQueryBuilder.filter(QueryBuilders.termQuery("state", 1));
 
         // IP
         if (StringUtils.isNotBlank(form.getIp())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("ip.keyword", form.getIp()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("ip.keyword", form.getIp()));
         }
 
         // site
         if (StringUtils.isNotBlank(form.getSite())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("site.keyword", form.getSite()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("site.keyword", form.getSite()));
         }
 
         return boolQueryBuilder;
@@ -955,41 +960,41 @@ public class EsSearchService {
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
 
         // 处理过的数据
-        boolQueryBuilder.must(QueryBuilders.termQuery("state", 1));
+        boolQueryBuilder.filter(QueryBuilders.termQuery("state", 1));
 
         // IP
         if (StringUtils.isNotBlank(form.getIp())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("ip", form.getIp()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("ip.keyword", form.getIp()));
         }
 
         // 端口
         if (StringUtils.isNotBlank(form.getPort())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("port.keyword", form.getPort()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("port.keyword", form.getPort()));
         }
 
         // site
         if (StringUtils.isNotBlank(form.getSite())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("site.keyword", form.getSite()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("site.keyword", form.getSite()));
         }
 
         // url
         if (StringUtils.isNotBlank(form.getUrl())) {
-            boolQueryBuilder.must(QueryBuilders.matchQuery("url", form.getUrl().toLowerCase()).operator(Operator.AND));
+            boolQueryBuilder.filter(QueryBuilders.matchQuery("url", form.getUrl().toLowerCase()).operator(Operator.AND));
         }
 
         // 指纹
         if (StringUtils.isNotBlank(form.getFinger())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("apps.name", form.getFinger().toLowerCase()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("apps.name.keyword", form.getFinger().toLowerCase()));
         }
 
         // 国家
         if (StringUtils.isNotBlank(form.getCountry())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("geoip.country_name", form.getCountry()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("geoip.country_name.keyword", form.getCountry()));
         }
 
         // os
         if (StringUtils.isNotBlank(form.getOs())) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("apps.os ", form.getOs()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("apps.os.keyword ", form.getOs()));
         }
 
         // type
@@ -1011,8 +1016,12 @@ public class EsSearchService {
         }
 
         // 筛选内网资产
-        if (form.isInner()) {
-            boolQueryBuilder.must(QueryBuilders.termQuery("inner", form.isInner()));
+        if (form.getInner() != null && form.getInner().equals(1)) {
+            boolQueryBuilder.filter(QueryBuilders.termQuery("inner", true));
+        }
+
+        if (form.getInner() != null && form.getInner().equals(2)) {
+            boolQueryBuilder.filter(QueryBuilders.termQuery("inner", false));
         }
 
         // 时间范围
@@ -1033,7 +1042,7 @@ public class EsSearchService {
             rangeQueryBuilder.gte(c.getTime());
         }
 
-        boolQueryBuilder.must(rangeQueryBuilder);
+        boolQueryBuilder.filter(rangeQueryBuilder);
 
         return boolQueryBuilder;
     }
