@@ -171,6 +171,16 @@ public class EsSearchService {
             "@timestamp",
     };
 
+    private static final String[] INCLUDE_SOURCE_MAJOR_SITE = new String[]{
+            "host",
+            "site",
+            "title",
+            "@timestamp",
+            "apps",
+            "url_tpl",
+            "url",
+    };
+
     private static final int SIZE = 2147483647;
 
     private static int total;
@@ -815,6 +825,72 @@ public class EsSearchService {
         return topFingerList.stream().sorted(Comparator.comparing(TopInfoBO::getCount).reversed()).collect(Collectors.toList());
     }
 
+
+    public Page<MajorSiteBO> majorSite(QueryBaseForm form) {
+        String termName = "urls";
+
+        SearchRequest request = getSearchRequest();
+        SearchSourceBuilder sourceBuilder = getSourceBuilder();
+
+        BoolQueryBuilder boolQueryBuilder = getBoolQueryWithQueryForm(form);
+        boolQueryBuilder.filter(QueryBuilders.termQuery("pro.keyword", "HTTP"));
+        boolQueryBuilder.filter(QueryBuilders.existsQuery("apps.categories.id"));
+        sourceBuilder.query(boolQueryBuilder);
+        sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
+                .size(form.getPageSize());
+
+        sourceBuilder.sort("@timestamp", SortOrder.DESC);
+        sourceBuilder.fetchSource(INCLUDE_SOURCE_MAJOR_SITE, null)
+                .collapse(new CollapseBuilder("url.keyword"));
+
+        TermsAggregationBuilder urlsAgg = AggregationBuilders.terms(termName).field("url.keyword").size(SIZE);
+        urlsAgg.order(BucketOrder.aggregation("timestamp_order", false));
+
+        MaxAggregationBuilder maxAgg = AggregationBuilders.max("timestamp_order").field("@timestamp");
+        urlsAgg.subAggregation(maxAgg);
+
+        sourceBuilder.aggregation(urlsAgg);
+
+        log.info("urls_json: {}", sourceBuilder);
+        request.source(sourceBuilder);
+
+        SearchResponse response = search(request);
+        if (response == null) {
+            return new Page<>();
+        }
+
+        Terms terms = response.getAggregations().get(termName);
+        total = terms.getBuckets().size();
+
+        SearchHits searchHits = response.getHits();
+        Page<MajorSiteBO> page = new Page<>();
+        List<MajorSiteBO> majorSiteList = new ArrayList<>();
+        for (SearchHit searchHit : searchHits) {
+            String json = searchHit.getSourceAsString();
+            MajorSiteBO majorSite = new Gson().fromJson(json, MajorSiteBO.class);
+            for (Terms.Bucket bucket : terms.getBuckets()) {
+                if (bucket.getKeyAsString().equals(majorSite.getUrl())) {
+                    majorSite.setCount(bucket.getDocCount());
+                }
+            }
+            List<String> assembly = new ArrayList<>();
+            for (ApplicationVO vo : majorSite.getApps()){
+                if (StringUtils.isNotBlank(vo.getName())){
+                    assembly.add(vo.getName());
+                }
+            }
+            majorSite.setAssembly(assembly.isEmpty() ? "" : Joiner.on(',').join(assembly));
+
+            majorSiteList.add(majorSite);
+        }
+        if (!majorSiteList.isEmpty()) {
+            page.setData(majorSiteList);
+            page.setTotal(total);
+            page.setPageSize(form.getPageSize());
+            page.setCurrentPage(form.getCurrentPage());
+        }
+        return page;
+    }
 
     public TopBO hostTop(QueryBaseForm form) {
         return top(form, 1);

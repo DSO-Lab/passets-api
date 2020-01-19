@@ -95,4 +95,10 @@ public class IndexController {
     public TopBO siteTop(@RequestBody QueryBaseForm form) {
         return esSearchService.siteTop(form);
     }
+
+    @PostMapping("/major/site")
+    @ApiOperation(value = "重要站点")
+    public Page<MajorSiteBO> majorSite(@RequestBody QueryBaseForm form) {
+        return esSearchService.majorSite(form);
+    }
 }
