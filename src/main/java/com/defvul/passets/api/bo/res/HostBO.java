@@ -32,7 +32,7 @@ public class HostBO {
     private List<ApplicationVO> apps;
 
     @ApiModelProperty(value = "主机端口信息")
-    private List<HostListBO> hosts;
+    private List<HostInfoBO> hosts;
 
     @ApiModelProperty(value = "站点标题")
     private String title;

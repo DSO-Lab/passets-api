@@ -12,11 +12,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
@@ -126,6 +124,8 @@ public class EsSearchService {
             "ip",
             "header",
             "body",
+            "url",
+            "site",
     };
 
     private static final String[] INCLUDE_SOURCE_HOST = new String[]{
@@ -470,7 +470,7 @@ public class EsSearchService {
         List<HostBO> hostBOList = queryHost(form, false);
         if (!hostBOList.isEmpty()) {
             hostBO = hostBOList.get(0);
-            List<String> ports = hostBO.getHosts().parallelStream().map(HostListBO::getPort).collect(Collectors.toList());
+            List<String> ports = hostBO.getHosts().parallelStream().map(HostInfoBO::getPort).collect(Collectors.toList());
             hostBO.setPorts(ports);
         }
         Map<String, List<TopInfoBO>> topInfoMap = queryIpInfoTop(form);
@@ -520,7 +520,7 @@ public class EsSearchService {
             String json = searchHit.getSourceAsString();
             HostBO hostBO = new Gson().fromJson(json, HostBO.class);
             form.setIp(hostBO.getIp());
-            List<HostListBO> infoBOList = queryHostAndPort(form, page);
+            List<HostInfoBO> infoBOList = queryHostAndPort(form, page);
             hostBO.setHosts(infoBOList);
             hostBOList.add(hostBO);
         }
@@ -582,7 +582,7 @@ public class EsSearchService {
         return topInfoMap;
     }
 
-    private List<HostListBO> queryHostAndPort(QueryBaseForm form, boolean page) {
+    private List<HostInfoBO> queryHostAndPort(QueryBaseForm form, boolean page) {
         String termName = "host_info";
         String stats = "times_count";
         String topHist = "top_score_hits";
@@ -618,20 +618,20 @@ public class EsSearchService {
             return Collections.emptyList();
         }
         Terms terms = response.getAggregations().get(termName);
-        List<HostListBO> hostInfoBOList = new ArrayList<>();
+        List<HostInfoBO> hostInfoBOList = new ArrayList<>();
         if (terms != null) {
             for (Terms.Bucket portTerms : terms.getBuckets()) {
                 ParsedStats timeStats = portTerms.getAggregations().get(stats);
                 ParsedTopHits hits = portTerms.getAggregations().get(topHist);
                 String hitsJson = hits.getHits().getAt(0).getSourceAsString();
-                HostListBO infoBO = new Gson().fromJson(hitsJson, HostListBO.class);
+                HostInfoBO infoBO = new Gson().fromJson(hitsJson, HostInfoBO.class);
                 infoBO.setCount(portTerms.getDocCount());
                 infoBO.setMinDate(parseDate(timeStats.getMinAsString()));
                 infoBO.setMaxDate(parseDate(timeStats.getMaxAsString()));
                 hostInfoBOList.add(infoBO);
             }
         }
-        return hostInfoBOList.parallelStream().sorted(Comparator.comparing(HostListBO::getMaxDate).reversed()).collect(Collectors.toList());
+        return hostInfoBOList.parallelStream().sorted(Comparator.comparing(HostInfoBO::getMaxDate).reversed()).collect(Collectors.toList());
     }
 
     public Page<SiteBO> sitePage(QueryBaseForm form) {
@@ -1008,7 +1008,7 @@ public class EsSearchService {
             for (String pro : form.getPro()) {
                 tmpBoolQueryBuilder.should(QueryBuilders.termQuery("pro.keyword", pro));
             }
-            boolQueryBuilder.must(tmpBoolQueryBuilder);
+            boolQueryBuilder.filter(tmpBoolQueryBuilder);
         }
 
         // 分类ID
@@ -1017,7 +1017,7 @@ public class EsSearchService {
             for (Long id : form.getCategoryId()) {
                 tmpBoolQueryBuilder.should(QueryBuilders.termQuery("apps.categories.id", id));
             }
-            boolQueryBuilder.must(tmpBoolQueryBuilder);
+            boolQueryBuilder.filter(tmpBoolQueryBuilder);
         }
 
         // 筛选内网资产
@@ -1025,6 +1025,7 @@ public class EsSearchService {
             boolQueryBuilder.filter(QueryBuilders.termQuery("inner", true));
         }
 
+        // 筛选外网资产
         if (form.getInner() != null && form.getInner().equals(2)) {
             boolQueryBuilder.filter(QueryBuilders.termQuery("inner", false));
         }

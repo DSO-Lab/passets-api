@@ -11,7 +11,7 @@ import java.util.List;
 
 @Data
 @ApiModel(description = "数据详情")
-public class HostListBO {
+public class HostInfoBO {
 
     @ApiModelProperty(value = "访问次数")
     private long count;
@@ -50,6 +50,9 @@ public class HostListBO {
 
     @ApiModelProperty(value = "原始payload")
     private String payload;
+
+    @ApiModelProperty(value = "url")
+    private String url;
 
 
 }
