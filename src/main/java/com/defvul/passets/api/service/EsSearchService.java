@@ -421,7 +421,9 @@ public class EsSearchService {
     }
 
 
-    public List<InfoBO> urlChild(QueryBaseForm form) {
+    public Page<InfoBO> urlChild(QueryBaseForm form) {
+        Page<InfoBO> page = new Page<>();
+
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
 
@@ -435,13 +437,12 @@ public class EsSearchService {
         topHitsAggregationBuilder.fetchSource(form.isFullField() ? INCLUDE_SOURCE_ALL : INCLUDE_SOURCE, null);
         urlsChild.subAggregation(topHitsAggregationBuilder);
 
-
         sourceBuilder.aggregation(urlsChild);
 
         request.source(sourceBuilder);
         SearchResponse response = search(request);
         if (response == null) {
-            return Collections.emptyList();
+            return page;
         }
 
         Terms terms = response.getAggregations().get(childTermName);
@@ -452,10 +453,20 @@ public class EsSearchService {
             String json = hits.getHits().getAt(0).getSourceAsString();
             InfoBO bo = new Gson().fromJson(json, InfoBO.class);
             bo.setCount(count);
+            bo.setMaxAsString(new Date());
+            bo.setMinAsString(new Date());
             result.add(bo);
         }
-        return result;
-
+        if (!result.isEmpty()) {
+            int index = (form.getCurrentPage() - 1) * form.getPageSize();
+            int num = form.getPageSize() * form.getCurrentPage();
+            int end = result.size() < num ? result.size() : num;
+            page.setData(result.subList(index, end));
+            page.setTotal(terms.getBuckets().size());
+            page.setPageSize(form.getPageSize());
+            page.setCurrentPage(form.getCurrentPage());
+        }
+        return page;
     }
 
     public Page<HostBO> host(QueryBaseForm form) {
@@ -874,8 +885,8 @@ public class EsSearchService {
                 }
             }
             List<String> assembly = new ArrayList<>();
-            for (ApplicationVO vo : majorSite.getApps()){
-                if (StringUtils.isNotBlank(vo.getName())){
+            for (ApplicationVO vo : majorSite.getApps()) {
+                if (StringUtils.isNotBlank(vo.getName())) {
                     assembly.add(vo.getName());
                 }
             }

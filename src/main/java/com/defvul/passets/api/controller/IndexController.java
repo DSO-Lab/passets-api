@@ -56,7 +56,7 @@ public class IndexController {
 
     @PostMapping("/url/child")
     @ApiOperation(value = "查询所有子链接")
-    public List<InfoBO> urlChild(@RequestBody QueryBaseForm form) {
+    public Page<InfoBO> urlChild(@RequestBody QueryBaseForm form) {
         return esSearchService.urlChild(form);
     }
 
