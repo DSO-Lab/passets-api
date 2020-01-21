@@ -244,9 +244,8 @@ public class EsSearchService {
         String termName = "ip_port";
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
-        sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
-                .size(form.getPageSize())
-                .sort("@timestamp", SortOrder.DESC);
+        sourceBuilder = setForm(sourceBuilder, form.getCurrentPage(), form.getPageSize());
+        sourceBuilder.sort("@timestamp", SortOrder.DESC);
 
         sourceBuilder.fetchSource(INCLUDE_SOURCE_IP, null).collapse(new CollapseBuilder("host.keyword"));
         sourceBuilder.query(QueryBuilders.termQuery("state", 1));
@@ -373,12 +372,11 @@ public class EsSearchService {
         String childTermName = "urls_child";
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
-        sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
-                .size(form.getPageSize())
-                .fetchSource(form.isFullField() ? INCLUDE_SOURCE_ALL : INCLUDE_SOURCE, null)
+        sourceBuilder = setForm(sourceBuilder, form.getCurrentPage(), form.getPageSize());
+        sourceBuilder.fetchSource(form.isFullField() ? INCLUDE_SOURCE_ALL : INCLUDE_SOURCE, null)
                 .sort("@timestamp", SortOrder.DESC);
         BoolQueryBuilder boolQueryBuilder = getBoolQueryWithQueryForm(form);
-        boolQueryBuilder.must(QueryBuilders.existsQuery("site"));
+        boolQueryBuilder.filter(QueryBuilders.existsQuery("site"));
         sourceBuilder.query(boolQueryBuilder).collapse(new CollapseBuilder("url_tpl.keyword"));
 
         TermsAggregationBuilder urlsChild = AggregationBuilders.terms(childTermName).field("url_tpl.keyword");
@@ -500,15 +498,20 @@ public class EsSearchService {
         return hostBO;
     }
 
+    private SearchSourceBuilder setForm(SearchSourceBuilder builder, int index, int size) {
+        int current = (index - 1) * size;
+        builder.from(current).size(size);
+        return builder;
+    }
+
     private List<HostBO> queryHost(QueryBaseForm form, boolean page) {
         String termName = "host_info";
 
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
         if (page) {
+            sourceBuilder = setForm(sourceBuilder, form.getCurrentPage(), form.getPageSize());
             sourceBuilder.query(getBoolQueryWithQueryForm(form));
-            sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
-                    .size(form.getPageSize());
         } else {
             sourceBuilder.query(getBoolQueryFormInfo(form));
             sourceBuilder.size(1);
@@ -687,8 +690,7 @@ public class EsSearchService {
             BoolQueryBuilder boolQueryBuilder = getBoolQueryWithQueryForm(form);
             boolQueryBuilder.filter(QueryBuilders.termQuery("pro.keyword", "HTTP"));
             sourceBuilder.query(boolQueryBuilder);
-            sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
-                    .size(form.getPageSize());
+            sourceBuilder = setForm(sourceBuilder, form.getCurrentPage(), form.getPageSize());
         } else {
             sourceBuilder.query(getBoolQueryFormInfo(form));
             sourceBuilder.size(1);
@@ -847,8 +849,7 @@ public class EsSearchService {
         boolQueryBuilder.filter(QueryBuilders.termQuery("pro.keyword", "HTTP"));
         boolQueryBuilder.filter(QueryBuilders.existsQuery("apps.categories.id"));
         sourceBuilder.query(boolQueryBuilder);
-        sourceBuilder.from(form.getCurrentPage() > 0 ? form.getCurrentPage() - 1 : form.getCurrentPage())
-                .size(form.getPageSize());
+        sourceBuilder = setForm(sourceBuilder, form.getCurrentPage(), form.getPageSize());
 
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
         sourceBuilder.fetchSource(INCLUDE_SOURCE_MAJOR_SITE, null)
@@ -1076,7 +1077,7 @@ public class EsSearchService {
 
         // 指纹
         if (StringUtils.isNotBlank(form.getFinger())) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("apps.name.keyword", form.getFinger().toLowerCase()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("apps.name.keyword", form.getFinger()));
         }
 
         // 国家
