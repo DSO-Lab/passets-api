@@ -61,5 +61,8 @@ public class QueryBaseForm extends BaseForm{
 
     @ApiModelProperty(value = "操作系统")
     private String os;
+
+    @ApiModelProperty(value = "标题")
+    private String title;
 }
 

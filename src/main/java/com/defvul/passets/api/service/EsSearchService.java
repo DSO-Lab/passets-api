@@ -781,7 +781,7 @@ public class EsSearchService {
             siteInfoList.add(siteInfo);
 
             count = bucket.getDocCount();
-            if (siteInfo.getApps().size() > 0) {
+            if (siteInfo.getApps() != null) {
                 for (ApplicationVO app : siteInfo.getApps()) {
                     if (StringUtils.isNotBlank(app.getName())) {
                         apps.add(app.getName());
@@ -1088,6 +1088,11 @@ public class EsSearchService {
         // os
         if (StringUtils.isNotBlank(form.getOs())) {
             boolQueryBuilder.filter(QueryBuilders.termQuery("apps.os.keyword ", form.getOs()));
+        }
+
+        // os
+        if (StringUtils.isNotBlank(form.getTitle())) {
+            boolQueryBuilder.filter(QueryBuilders.matchQuery("title", form.getTitle()));
         }
 
         // type
