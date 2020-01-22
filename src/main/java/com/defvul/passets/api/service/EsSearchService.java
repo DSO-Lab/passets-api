@@ -224,7 +224,7 @@ public class EsSearchService {
         log.info("IP开始搜索");
         SearchResponse response = search(request);
         log.info("IP结束搜索");
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return Collections.emptyList();
         }
 
@@ -262,7 +262,7 @@ public class EsSearchService {
         request.source(sourceBuilder);
 
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return new Page<>();
         }
 
@@ -313,7 +313,7 @@ public class EsSearchService {
 
         request.source(sourceBuilder);
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return Collections.emptyList();
         }
 
@@ -352,7 +352,7 @@ public class EsSearchService {
 
         request.source(sourceBuilder);
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return Collections.emptyList();
         }
 
@@ -389,7 +389,7 @@ public class EsSearchService {
 
         request.source(sourceBuilder);
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return new Page<>();
         }
         Page<InfoBO> page = new Page<>();
@@ -439,7 +439,7 @@ public class EsSearchService {
 
         request.source(sourceBuilder);
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return page;
         }
 
@@ -536,8 +536,10 @@ public class EsSearchService {
         }
         SearchHits searchHits = response.getHits();
 
-        Terms terms = response.getAggregations().get(termName);
-        total = terms.getBuckets().size();
+        if (response.getAggregations() != null) {
+            Terms terms = response.getAggregations().get(termName);
+            total = terms.getBuckets().size();
+        }
 
         List<HostBO> hostBOList = new ArrayList<>();
         for (SearchHit searchHit : searchHits) {
@@ -575,7 +577,7 @@ public class EsSearchService {
         request.source(sourceBuilder);
 
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null  || response.getAggregations() == null) {
             return Collections.emptyMap();
         }
 
@@ -620,7 +622,6 @@ public class EsSearchService {
         }
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
 
-
         TermsAggregationBuilder portAgg = AggregationBuilders.terms(termName).field("port").size(SIZE);
 
         TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topHist).size(1).sort("@timestamp", SortOrder.DESC);
@@ -632,13 +633,12 @@ public class EsSearchService {
 
         portAgg.subAggregation(topHitsAggregationBuilder).subAggregation(statsAggregationBuilder).subAggregation(maxAggregationBuilder);
 
-
         sourceBuilder.aggregation(portAgg);
         log.info("ip_info_json: {}", sourceBuilder);
         request.source(sourceBuilder);
 
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return Collections.emptyList();
         }
         Terms terms = response.getAggregations().get(termName);
@@ -715,8 +715,10 @@ public class EsSearchService {
             return Collections.emptyList();
         }
 
-        Terms terms = response.getAggregations().get(termName);
-        total = terms.getBuckets().size();
+        if (response.getAggregations() != null) {
+            Terms terms = response.getAggregations().get(termName);
+            total = terms.getBuckets().size();
+        }
 
         SearchHits searchHits = response.getHits();
         List<SiteBO> siteList = new ArrayList<>();
@@ -760,7 +762,7 @@ public class EsSearchService {
         request.source(sourceBuilder);
 
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return new SiteBO();
         }
 
@@ -821,7 +823,7 @@ public class EsSearchService {
         request.source(sourceBuilder);
 
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return Collections.emptyList();
         }
 
@@ -867,7 +869,7 @@ public class EsSearchService {
         request.source(sourceBuilder);
 
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return new Page<>();
         }
 
@@ -1002,7 +1004,7 @@ public class EsSearchService {
         request.source(sourceBuilder);
 
         SearchResponse response = search(request);
-        if (response == null) {
+        if (response == null || response.getAggregations() == null) {
             return Collections.emptyList();
         }
         Terms terms = response.getAggregations().get(termName);
