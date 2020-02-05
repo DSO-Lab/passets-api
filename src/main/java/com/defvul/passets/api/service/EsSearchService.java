@@ -235,6 +235,12 @@ public class EsSearchService {
             String json = hits.getHits().getAt(0).getSourceAsString();
             InfoBO bo = new Gson().fromJson(json, InfoBO.class);
             bo.setCount(bucket.getDocCount());
+            if (null == bo.getMaxAsString()){
+                bo.setMaxAsString(new Date());
+            }
+            if (null == bo.getMinAsString()){
+                bo.setMinAsString(new Date());
+            }
             result.add(bo);
         }
         return result;
@@ -329,6 +335,13 @@ public class EsSearchService {
                 String json = hits.getHits().getAt(0).getSourceAsString();
                 InfoBO bo = new Gson().fromJson(json, InfoBO.class);
                 bo.setCount(urlBucket.getDocCount());
+                if(null == bo.getMaxAsString()){
+                    bo.setMinAsString(new Date());
+                }
+
+                if(null == bo.getMinAsString()){
+                    bo.setMaxAsString(new Date());
+                }
                 urls.add(bo);
             }
             result.add(new UrlBO(key, count, urls));
@@ -577,7 +590,7 @@ public class EsSearchService {
         request.source(sourceBuilder);
 
         SearchResponse response = search(request);
-        if (response == null  || response.getAggregations() == null) {
+        if (response == null || response.getAggregations() == null) {
             return Collections.emptyMap();
         }
 
