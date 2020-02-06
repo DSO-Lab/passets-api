@@ -27,5 +27,5 @@ public class UrlBO {
     private long count;
 
     @ApiModelProperty(value = "子URL")
-    private List<InfoBO> urls;
+    private List<BaseInfoBO> urls;
 }

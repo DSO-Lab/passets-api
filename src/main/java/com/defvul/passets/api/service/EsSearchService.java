@@ -204,7 +204,7 @@ public class EsSearchService {
      * @param form
      * @return
      */
-    public List<InfoBO> queryTimeSlotWithIpAndPort(QueryBaseForm form) {
+    public List<BaseInfoBO> queryTimeSlotWithIpAndPort(QueryBaseForm form) {
         String termName = "ip_port";
         String topName = "top_score_hits";
         SearchRequest request = getSearchRequest();
@@ -229,24 +229,18 @@ public class EsSearchService {
         }
 
         Terms terms = response.getAggregations().get(termName);
-        List<InfoBO> result = new ArrayList<>();
+        List<BaseInfoBO> result = new ArrayList<>();
         for (Terms.Bucket bucket : terms.getBuckets()) {
             ParsedTopHits hits = bucket.getAggregations().get(topName);
             String json = hits.getHits().getAt(0).getSourceAsString();
-            InfoBO bo = new Gson().fromJson(json, InfoBO.class);
+            BaseInfoBO bo = new Gson().fromJson(json, BaseInfoBO.class);
             bo.setCount(bucket.getDocCount());
-            if (null == bo.getMaxAsString()){
-                bo.setMaxAsString(new Date());
-            }
-            if (null == bo.getMinAsString()){
-                bo.setMinAsString(new Date());
-            }
             result.add(bo);
         }
         return result;
     }
 
-    public Page<InfoBO> ipPage(QueryBaseForm form) {
+    public Page<BaseInfoBO> ipPage(QueryBaseForm form) {
         String termName = "ip_port";
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
@@ -275,8 +269,8 @@ public class EsSearchService {
         Terms terms = response.getAggregations().get(termName);
         int total = terms.getBuckets().size();
 
-        Page<InfoBO> page = new Page<>();
-        List<InfoBO> result = new ArrayList<>();
+        Page<BaseInfoBO> page = new Page<>();
+        List<BaseInfoBO> result = new ArrayList<>();
         page.setCurrentPage(form.getCurrentPage());
         page.setPageSize(form.getPageSize());
         page.setTotal(total);
@@ -284,12 +278,12 @@ public class EsSearchService {
         SearchHits searchHits = response.getHits();
         for (SearchHit hit : searchHits.getHits()) {
             String json = hit.getSourceAsString();
-            InfoBO bo = new Gson().fromJson(json, InfoBO.class);
+            BaseInfoBO bo = new Gson().fromJson(json, BaseInfoBO.class);
             terms.getBuckets().parallelStream().filter(b -> b.getKey().equals(bo.getHost())).forEach(b -> bo.setCount(b.getDocCount()));
             result.add(bo);
         }
         if (result.size() > 0) {
-            page.setData(result.parallelStream().sorted(Comparator.comparing(InfoBO::getCount).reversed()).collect(Collectors.toList()));
+            page.setData(result.parallelStream().sorted(Comparator.comparing(BaseInfoBO::getCount).reversed()).collect(Collectors.toList()));
         }
 
         return page;
@@ -329,19 +323,12 @@ public class EsSearchService {
             String key = bucket.getKeyAsString();
             long count = bucket.getDocCount();
             Terms termNode = bucket.getAggregations().get(childTermName);
-            List<InfoBO> urls = new ArrayList<>();
+            List<BaseInfoBO> urls = new ArrayList<>();
             for (Terms.Bucket urlBucket : termNode.getBuckets()) {
                 ParsedTopHits hits = urlBucket.getAggregations().get(topName);
                 String json = hits.getHits().getAt(0).getSourceAsString();
-                InfoBO bo = new Gson().fromJson(json, InfoBO.class);
+                BaseInfoBO bo = new Gson().fromJson(json, BaseInfoBO.class);
                 bo.setCount(urlBucket.getDocCount());
-                if(null == bo.getMaxAsString()){
-                    bo.setMinAsString(new Date());
-                }
-
-                if(null == bo.getMinAsString()){
-                    bo.setMaxAsString(new Date());
-                }
                 urls.add(bo);
             }
             result.add(new UrlBO(key, count, urls));
@@ -378,7 +365,7 @@ public class EsSearchService {
         return result.parallelStream().sorted(Comparator.comparing(UrlBO::getCount).reversed()).collect(Collectors.toList());
     }
 
-    public Page<InfoBO> urlsPage(QueryBaseForm form) {
+    public Page<BaseInfoBO> urlsPage(QueryBaseForm form) {
         if (form.getUrl() == null) {
             return new Page<>();
         }
@@ -405,8 +392,8 @@ public class EsSearchService {
         if (response == null || response.getAggregations() == null) {
             return new Page<>();
         }
-        Page<InfoBO> page = new Page<>();
-        List<InfoBO> result = new ArrayList<>();
+        Page<BaseInfoBO> page = new Page<>();
+        List<BaseInfoBO> result = new ArrayList<>();
 
         SearchHits hits = response.getHits();
         Terms terms = response.getAggregations().get(childTermName);
@@ -426,14 +413,14 @@ public class EsSearchService {
         }
         if (result.size() > 0) {
             page.setData(result.parallelStream()
-                    .sorted(Comparator.comparing(InfoBO::getTimestamp).reversed()).collect(Collectors.toList()));
+                    .sorted(Comparator.comparing(BaseInfoBO::getTimestamp).reversed()).collect(Collectors.toList()));
         }
         return page;
     }
 
 
-    public Page<InfoBO> urlChild(QueryBaseForm form) {
-        Page<InfoBO> page = new Page<>();
+    public Page<BaseInfoBO> urlChild(QueryBaseForm form) {
+        Page<BaseInfoBO> page = new Page<>();
 
         SearchRequest request = getSearchRequest();
         SearchSourceBuilder sourceBuilder = getSourceBuilder();
@@ -457,15 +444,13 @@ public class EsSearchService {
         }
 
         Terms terms = response.getAggregations().get(childTermName);
-        List<InfoBO> result = new ArrayList<>();
+        List<BaseInfoBO> result = new ArrayList<>();
         for (Terms.Bucket bucket : terms.getBuckets()) {
             long count = bucket.getDocCount();
             ParsedTopHits hits = bucket.getAggregations().get(topName);
             String json = hits.getHits().getAt(0).getSourceAsString();
-            InfoBO bo = new Gson().fromJson(json, InfoBO.class);
+            BaseInfoBO bo = new Gson().fromJson(json, BaseInfoBO.class);
             bo.setCount(count);
-            bo.setMaxAsString(new Date());
-            bo.setMinAsString(new Date());
             result.add(bo);
         }
         if (!result.isEmpty()) {

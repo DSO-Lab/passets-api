@@ -26,13 +26,13 @@ public class IndexController {
 
     @PostMapping("/ip")
     @ApiOperation(value = "查询IP+端口")
-    public List<InfoBO> ip(@RequestBody QueryBaseForm form) {
+    public List<BaseInfoBO> ip(@RequestBody QueryBaseForm form) {
         return esSearchService.queryTimeSlotWithIpAndPort(form);
     }
 
     @PostMapping("/ip/page")
     @ApiOperation(value = "分页查询IP+端口")
-    public Page<InfoBO> ipPage(@RequestBody QueryBaseForm form) {
+    public Page<BaseInfoBO> ipPage(@RequestBody QueryBaseForm form) {
         return esSearchService.ipPage(form);
     }
 
@@ -44,7 +44,7 @@ public class IndexController {
 
     @PostMapping("/urls/page")
     @ApiOperation(value = "分页查询子链接")
-    public Page<InfoBO> urlsPage(@RequestBody QueryBaseForm form) {
+    public Page<BaseInfoBO> urlsPage(@RequestBody QueryBaseForm form) {
         return esSearchService.urlsPage(form);
     }
 
@@ -56,7 +56,7 @@ public class IndexController {
 
     @PostMapping("/url/child")
     @ApiOperation(value = "查询所有子链接")
-    public Page<InfoBO> urlChild(@RequestBody QueryBaseForm form) {
+    public Page<BaseInfoBO> urlChild(@RequestBody QueryBaseForm form) {
         return esSearchService.urlChild(form);
     }
 
