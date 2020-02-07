@@ -187,13 +187,18 @@ public class EsSearchService {
 
     @PostConstruct
     public void init() {
+
         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(new HashMap<String, Object>(1) {{
             put("search.max_buckets", SIZE);
         }});
+        request.timeout(TimeValue.timeValueMinutes(2));
         try {
+            Thread.sleep(20000L);
             client.cluster().putSettings(request, RequestOptions.DEFAULT);
-        } catch (IOException e) {
+            log.info("执行es设置成功");
+        } catch (Exception e) {
+            init();
             log.error("执行es设置报错: {}", ExceptionUtils.getStackTrace(e));
         }
     }
@@ -289,7 +294,7 @@ public class EsSearchService {
         return page;
     }
 
-    public List<UrlBO> queryTimeSlotWithUrl(QueryBaseForm form) {
+    public List<BaseInfoBO> queryTimeSlotWithUrl(QueryBaseForm form) {
         String termName = "urls";
         String childTermName = "urls_child";
         String topName = "top_score_hits";
@@ -318,20 +323,16 @@ public class EsSearchService {
         }
 
         Terms terms = response.getAggregations().get(termName);
-        List<UrlBO> result = new ArrayList<>();
+        List<BaseInfoBO> result = new ArrayList<>();
         for (Terms.Bucket bucket : terms.getBuckets()) {
-            String key = bucket.getKeyAsString();
-            long count = bucket.getDocCount();
             Terms termNode = bucket.getAggregations().get(childTermName);
-            List<BaseInfoBO> urls = new ArrayList<>();
             for (Terms.Bucket urlBucket : termNode.getBuckets()) {
                 ParsedTopHits hits = urlBucket.getAggregations().get(topName);
                 String json = hits.getHits().getAt(0).getSourceAsString();
                 BaseInfoBO bo = new Gson().fromJson(json, BaseInfoBO.class);
                 bo.setCount(urlBucket.getDocCount());
-                urls.add(bo);
+                result.add(bo);
             }
-            result.add(new UrlBO(key, count, urls));
         }
         return result;
     }
@@ -410,10 +411,6 @@ public class EsSearchService {
                 infoBO.setCount(b.getDocCount());
                 result.add(infoBO);
             });
-        }
-        if (result.size() > 0) {
-            page.setData(result.parallelStream()
-                    .sorted(Comparator.comparing(BaseInfoBO::getTimestamp).reversed()).collect(Collectors.toList()));
         }
         return page;
     }

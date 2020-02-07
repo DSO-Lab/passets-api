@@ -38,7 +38,7 @@ public class IndexController {
 
     @PostMapping("/url")
     @ApiOperation(value = "查询站点+子链接")
-    public List<UrlBO> url(@RequestBody QueryBaseForm form) {
+    public List<BaseInfoBO> url(@RequestBody QueryBaseForm form) {
         return esSearchService.queryTimeSlotWithUrl(form);
     }
 
