@@ -101,4 +101,5 @@ public class IndexController {
     public Page<MajorSiteBO> majorSite(@RequestBody QueryBaseForm form) {
         return esSearchService.majorSite(form);
     }
+
 }
