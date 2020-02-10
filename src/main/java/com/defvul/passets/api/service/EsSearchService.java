@@ -36,6 +36,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -184,6 +186,8 @@ public class EsSearchService {
     private static final int SIZE = 2147483647;
 
     private static int total;
+
+    public static final String REGEX_PORT = "^[1-9]$|(^[1-9][0-9]$)|(^[1-9][0-9][0-9]$)|(^[1-9][0-9][0-9][0-9]$)|(^[1-6][0-5][0-5][0-3][0-5]$)";
 
     @PostConstruct
     public void init() {
@@ -464,6 +468,13 @@ public class EsSearchService {
 
     public Page<HostBO> host(QueryBaseForm form) {
         Page<HostBO> page = new Page<>();
+        if(StringUtils.isNotBlank(form.getPort())){
+            Pattern pattern = Pattern.compile(REGEX_PORT);
+            Matcher matcher = pattern.matcher(form.getPort());
+            if(!matcher.find()){
+               return page;
+            }
+        }
         List<HostBO> hostBOList = queryHost(form, true);
         page.setTotal(total);
         page.setPageSize(form.getPageSize());
