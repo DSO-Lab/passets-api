@@ -1085,7 +1085,7 @@ public class EsSearchService {
 
         // 指纹
         if (StringUtils.isNotBlank(form.getFinger())) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("apps.name.keyword", form.getFinger()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("apps.name", form.getFinger()));
         }
 
         // 国家
@@ -1095,7 +1095,7 @@ public class EsSearchService {
 
         // os
         if (StringUtils.isNotBlank(form.getOs())) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("apps.os.keyword ", form.getOs()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("apps.os ", form.getOs()));
         }
 
         // os
