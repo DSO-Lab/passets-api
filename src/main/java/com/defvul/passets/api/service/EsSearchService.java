@@ -15,6 +15,7 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
@@ -51,6 +52,8 @@ import java.util.stream.Collectors;
 public class EsSearchService {
     @Autowired
     private RestHighLevelClient client;
+
+
 
     @Value("${elasticsearch.index}")
     private String index;
@@ -1085,7 +1088,7 @@ public class EsSearchService {
 
         // 指纹
         if (StringUtils.isNotBlank(form.getFinger())) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("apps.name", form.getFinger()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("apps.name.keyword", form.getFinger()));
         }
 
         // 国家
@@ -1100,7 +1103,7 @@ public class EsSearchService {
 
         // os
         if (StringUtils.isNotBlank(form.getTitle())) {
-            boolQueryBuilder.filter(QueryBuilders.matchQuery("title", form.getTitle()));
+            boolQueryBuilder.filter(QueryBuilders.matchQuery("title.keyword", form.getTitle()));
         }
 
         // type
