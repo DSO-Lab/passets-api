@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -200,17 +199,9 @@ public class EsSearchService {
             put("search.max_buckets", SIZE);
         }});
         request.timeout(TimeValue.timeValueMinutes(2));
-
-        UpdateSettingsRequest settingsRequest = new UpdateSettingsRequest();
-        settingsRequest.settings(new HashMap<String, Object>(1){{
-            put("index.max_result_window",SIZE);
-        }});
-        request.timeout(TimeValue.timeValueMinutes(2));
         try {
             Thread.sleep(20000L);
             client.cluster().putSettings(request, RequestOptions.DEFAULT);
-            client.indices().putSettings(settingsRequest,RequestOptions.DEFAULT);
-            log.info("执行es设置成功");
         } catch (Exception e) {
             init();
             log.error("执行es设置报错: {}", ExceptionUtils.getStackTrace(e));
