@@ -15,4 +15,7 @@ public class BaseForm {
     @JsonProperty("current_page")
     private Integer currentPage;
 
+    public Integer getPageSize() {
+        return pageSize == 0 ? 10 : pageSize;
+    }
 }
