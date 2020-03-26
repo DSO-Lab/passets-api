@@ -54,6 +54,9 @@ public class HostInfoBO {
     @ApiModelProperty(value = "url")
     private String url;
 
+    @ApiModelProperty(value = "来源")
+    private String tag;
+
 
 }
 

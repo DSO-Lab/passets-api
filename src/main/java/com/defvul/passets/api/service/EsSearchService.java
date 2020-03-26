@@ -122,11 +122,11 @@ public class EsSearchService {
         TermsAggregationBuilder statsCountAgg = AggregationBuilders.terms(statsCount).size(SIZE);
 
         if (isHost) {
-            if ("pros".equals(termName)) {
-                statsCountAgg.field("host.keyword");
-            } else {
-                statsCountAgg.field("ip.keyword");
-            }
+//            if ("pros".equals(termName)) {
+//                statsCountAgg.field("host.keyword");
+//            } else {
+            statsCountAgg.field("ip.keyword");
+//            }
             sourceBuilder.query(getBoolQueryWithQueryForm(form));
         } else {
             statsCountAgg.field("site.keyword");
@@ -213,6 +213,11 @@ public class EsSearchService {
         // site
         if (StringUtils.isNotBlank(form.getSite())) {
             boolQueryBuilder.filter(QueryBuilders.termQuery("site.keyword", form.getSite()));
+        }
+
+        // 来源
+        if (StringUtils.isNoneBlank(form.getTag())) {
+            boolQueryBuilder.filter(QueryBuilders.termQuery("tag.keyword", form.getTag()));
         }
 
         // url

@@ -40,5 +40,9 @@ public class SiteInfoBO {
     @ApiModelProperty(value = "末次发现时间")
     private Date timestamp;
 
+    @ApiModelProperty(value = "来源")
+    private String tag;
+
+
 
 }

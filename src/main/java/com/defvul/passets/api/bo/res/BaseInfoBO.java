@@ -77,4 +77,8 @@ public class BaseInfoBO {
 
     @ApiModelProperty(value = "网站标题", notes = "HTTP类型数据")
     private String title;
+
+    @ApiModelProperty(value = "来源")
+    private String tag;
+
 }

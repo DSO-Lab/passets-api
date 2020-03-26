@@ -50,6 +50,7 @@ public class SiteService {
             "site",
             "title",
             "@timestamp",
+            "tag",
     };
 
     private static final String[] INCLUDE_SOURCE_INFO = new String[]{
@@ -64,7 +65,8 @@ public class SiteService {
             "body",
             "url",
             "url_tpl",
-            "@timestamp"
+            "@timestamp",
+            "tag",
     };
 
 
@@ -84,6 +86,7 @@ public class SiteService {
             "path",
             "title",
             "ip",
+            "tag",
     };
 
     /**
@@ -283,16 +286,16 @@ public class SiteService {
     public Page<BaseInfoBO> majorPage(QueryPageForm form) {
         Page<BaseInfoBO> page = form.toPage();
         SearchSourceBuilder sourceBuilder = esSearchService.getPageSourceBuilder(page.getCurrentPage(), page.getPageSize());
-        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form));
+        BoolQueryBuilder boolQueryBuilder = esSearchService.getBoolQueryWithQueryForm(form);
+        boolQueryBuilder.filter(QueryBuilders.termQuery("pro.keyword", "HTTP"));
+        sourceBuilder.query(boolQueryBuilder);
 
         String topName = "top_score_hits";
         String childTermName = "urls_child";
+        sourceBuilder.sort("@timestamp", SortOrder.DESC);
+        sourceBuilder.fetchSource(INCLUDE_SOURCE_MAJOR, null).collapse(new CollapseBuilder("url_tpl.keyword"));
         TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(childTermName).field("url_tpl.keyword").size(EsSearchService.SIZE);
 
-        // 源数据
-        TopHitsAggregationBuilder topHitsAggregationBuilder = AggregationBuilders.topHits(topName).size(1).sort("@timestamp", SortOrder.DESC);
-        topHitsAggregationBuilder.fetchSource(INCLUDE_SOURCE_MAJOR, null);
-        termsAggregationBuilder.subAggregation(topHitsAggregationBuilder);
         sourceBuilder.aggregation(termsAggregationBuilder);
 
         log.debug("site_major_query: {}", sourceBuilder);
@@ -301,10 +304,15 @@ public class SiteService {
             return page;
         }
         Terms terms = response.getAggregations().get(childTermName);
-        List<BaseInfoBO> rows = new ArrayList<>();
+        page.setTotal(terms.getBuckets().size());
+        Map<String, Long> countMap = new HashMap<>();
         for (Terms.Bucket bucket : terms.getBuckets()) {
-            BaseInfoBO bo = esSearchService.getHitsByBucket(bucket, topName, BaseInfoBO.class);
-            bo.setCount(bucket.getDocCount());
+            countMap.put(bucket.getKeyAsString(), bucket.getDocCount());
+        }
+        List<BaseInfoBO> rows = new ArrayList<>();
+        for (SearchHit searchHit : response.getHits()) {
+            BaseInfoBO bo = new Gson().fromJson(searchHit.getSourceAsString(), BaseInfoBO.class);
+            bo.setCount(countMap.get(bo.getUrlTpl()));
             rows.add(bo);
         }
         page.setData(rows);

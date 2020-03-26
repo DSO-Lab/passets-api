@@ -66,4 +66,8 @@ public class SiteBO {
     @ApiModelProperty(value = "原始响正文")
     private String body;
 
+    @ApiModelProperty(value = "来源")
+    private String tag;
+
+
 }

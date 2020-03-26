@@ -22,7 +22,11 @@ public class DateAdapter implements JsonSerializer<Date>, JsonDeserializer<Date>
         try {
             date = format.parse(jsonElement.getAsString());
         } catch (Exception e) {
-            date = new Date(jsonElement.getAsJsonPrimitive().getAsLong());
+            try {
+                date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(jsonElement.getAsString());
+            } catch (Exception ee) {
+                date = new Date(jsonElement.getAsJsonPrimitive().getAsLong());
+            }
         }
         return date;
     }

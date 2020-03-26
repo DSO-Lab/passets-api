@@ -56,6 +56,7 @@ public class HostService {
             "site",
             "apps",
             "url",
+            "tag"
     };
 
     private static final String[] INCLUDE_APPS = new String[]{
