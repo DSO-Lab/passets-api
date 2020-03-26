@@ -11,6 +11,7 @@ import org.springframework.http.converter.json.GsonHttpMessageConverter;
 import springfox.documentation.spring.web.json.Json;
 
 import java.util.Arrays;
+import java.util.Date;
 
 @Configuration
 public class GsonConfig {
@@ -20,8 +21,11 @@ public class GsonConfig {
 
     @Bean
     public Gson gson() {
-        return new GsonBuilder().setDateFormat(this.GSON_DATE_FORMAT).enableComplexMapKeySerialization()
-                .registerTypeAdapter(Json.class, new SpringFoxJsonToGsonAdapter()).create();
+        return new GsonBuilder()
+                .setDateFormat(this.GSON_DATE_FORMAT).enableComplexMapKeySerialization()
+                .registerTypeAdapter(Date.class, new DateAdapter())
+                .registerTypeAdapter(Json.class, new SpringFoxJsonToGsonAdapter())
+                .create();
     }
 
     @Bean
