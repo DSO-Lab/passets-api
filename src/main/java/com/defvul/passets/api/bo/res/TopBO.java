@@ -28,4 +28,7 @@ public class TopBO {
     @ApiModelProperty(value = "操作系统")
     private List<TopInfoBO> os;
 
+    @ApiModelProperty(value = "来源")
+    private List<TopInfoBO> tag;
+
 }

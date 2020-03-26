@@ -1,5 +1,6 @@
 package com.defvul.passets.api.bo.res;
 
+import com.defvul.passets.api.vo.ApplicationVO;
 import com.defvul.passets.api.vo.GeoIpVO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.gson.annotations.SerializedName;
@@ -46,14 +47,10 @@ public class SiteBO {
     private String site;
 
     @ApiModelProperty(value = "指纹")
-    private String app;
+    private List<ApplicationVO> app;
 
     @ApiModelProperty(value = "指纹集")
     private List<TopInfoBO> apps;
-
-    @SerializedName("site_type")
-    @ApiModelProperty(value = "站点类型")
-    private Set<String> siteType;
 
     @SerializedName("@timestamp")
     @JsonProperty("@timestamp")

@@ -18,9 +18,6 @@ COPY --from=pre_jar --chown=0:0 /target/api-1.0.0.jar /api.jar
 
 WORKDIR /
 
-RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-    echo "Asia/Shanghai" > /etc/timezone
-
 ENTRYPOINT ["bash", "-c", "java ${JAVA_OPTS} -Djava.security.egd=file:/dev/./urandom -jar /api.jar"]
 
 EXPOSE 8080

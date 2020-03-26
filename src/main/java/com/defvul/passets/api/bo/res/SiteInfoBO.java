@@ -16,12 +16,6 @@ public class SiteInfoBO {
 
     private String path;
 
-    @SerializedName("min_date")
-    private Date minDate;
-
-    @SerializedName("max_date")
-    private Date maxDate;
-
     @ApiModelProperty(value = "指纹信息")
     private List<ApplicationVO> apps;
 
@@ -36,5 +30,15 @@ public class SiteInfoBO {
 
     @ApiModelProperty(value = "原始url")
     private String url;
+
+    @ApiModelProperty(value = "url模板")
+    @SerializedName("url_tpl")
+    private String urlTpl;
+
+    @SerializedName("@timestamp")
+    @JsonProperty("@timestamp")
+    @ApiModelProperty(value = "末次发现时间")
+    private Date timestamp;
+
 
 }

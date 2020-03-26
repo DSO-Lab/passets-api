@@ -17,7 +17,7 @@ import java.util.List;
  */
 @Data
 @ApiModel(description = "查询表单")
-public class QueryBaseForm extends BaseForm{
+public class QueryBaseForm {
 
     @ApiModelProperty(value = "开始时间")
     private Date start;
@@ -51,11 +51,6 @@ public class QueryBaseForm extends BaseForm{
     @JsonProperty("category_id")
     private List<Long> categoryId;
 
-    @ApiModelProperty(value = "是否全字段", notes = "body, data等字段会比较大")
-    @SerializedName("full_field")
-    @JsonProperty("full_field")
-    private boolean fullField;
-
     @ApiModelProperty(value = "国家")
     private String country;
 
@@ -64,5 +59,8 @@ public class QueryBaseForm extends BaseForm{
 
     @ApiModelProperty(value = "标题")
     private String title;
+
+    @ApiModelProperty(value = "来源")
+    private String tag;
 }
 

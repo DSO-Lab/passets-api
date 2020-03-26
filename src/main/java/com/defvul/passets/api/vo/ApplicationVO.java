@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 说明:
@@ -42,4 +43,14 @@ public class ApplicationVO {
 
     @ApiModelProperty(value = "其他信息", notes = "TCP类型")
     private String info;
+
+    @Override
+    public boolean equals(Object obj) {
+        return name.equals(((ApplicationVO) obj).getName());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name);
+    }
 }
