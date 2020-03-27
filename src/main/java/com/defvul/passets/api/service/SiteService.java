@@ -209,14 +209,14 @@ public class SiteService {
 
         Map<String, Terms.Bucket> bucketMap = new HashMap<>(terms.getBuckets().size());
         for (Terms.Bucket bucket : terms.getBuckets()) {
-            bucketMap.put(bucket.getKeyAsString(), bucket);
+            bucketMap.put(bucket.getKeyAsString().toLowerCase(), bucket);
         }
 
         SearchHits searchHits = response.getHits();
         List<SiteBO> siteList = new ArrayList<>();
         for (SearchHit searchHit : searchHits) {
             SiteBO bo = new Gson().fromJson(searchHit.getSourceAsString(), SiteBO.class);
-            Terms.Bucket bucket = bucketMap.get(bo.getSite());
+            Terms.Bucket bucket = bucketMap.get(bo.getSite().toLowerCase());
             bo.setCount(bucket.getDocCount());
             // 子url数
             Terms pathTerm = bucket.getAggregations().get(pathTermName);
@@ -307,12 +307,12 @@ public class SiteService {
         page.setTotal(terms.getBuckets().size());
         Map<String, Long> countMap = new HashMap<>();
         for (Terms.Bucket bucket : terms.getBuckets()) {
-            countMap.put(bucket.getKeyAsString(), bucket.getDocCount());
+            countMap.put(bucket.getKeyAsString().toLowerCase(), bucket.getDocCount());
         }
         List<BaseInfoBO> rows = new ArrayList<>();
         for (SearchHit searchHit : response.getHits()) {
             BaseInfoBO bo = new Gson().fromJson(searchHit.getSourceAsString(), BaseInfoBO.class);
-            bo.setCount(countMap.get(bo.getUrlTpl()));
+            bo.setCount(countMap.get(bo.getUrlTpl().toLowerCase()));
             rows.add(bo);
         }
         page.setData(rows);
