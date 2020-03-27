@@ -142,7 +142,7 @@ public class SiteService {
         TermsAggregationBuilder tplAgg = AggregationBuilders.terms(tplName).field("url_tpl.keyword").size(EsSearchService.SIZE);
         appNameAgg.subAggregation(tplAgg);
         sourceBuilder.aggregation(appNameAgg);
-        log.debug("site_info_top_query: {}", sourceBuilder);
+        log.info("site_info_top_query: {}", sourceBuilder);
         return esSearchService.getInfoTopWithSearchResponse(esSearchService.search(sourceBuilder), termName, tplName);
     }
 
@@ -193,7 +193,7 @@ public class SiteService {
 
         sourceBuilder.aggregation(urlsAgg);
 
-        log.debug("site_page_query: {}", sourceBuilder);
+        log.info("site_page_query: {}", sourceBuilder);
         SearchResponse response = esSearchService.search(sourceBuilder);
         if (response == null) {
             return Collections.emptyList();
@@ -205,7 +205,7 @@ public class SiteService {
             page.setTotal(terms.getBuckets().size());
         }
 
-        log.debug("开始设置（子url,title,组件）");
+        log.info("开始设置（子url,title,组件）");
 
         Map<String, Terms.Bucket> bucketMap = new HashMap<>(terms.getBuckets().size());
         for (Terms.Bucket bucket : terms.getBuckets()) {
@@ -241,7 +241,7 @@ public class SiteService {
             bo.setApp(new ArrayList<>(apps));
             siteList.add(bo);
         }
-        log.debug("结束设置（子url,title,组件）");
+        log.info("结束设置（子url,title,组件）");
 
         return siteList.parallelStream().sorted(Comparator.comparing(SiteBO::getTimestamp).reversed()).collect(Collectors.toList());
     }
@@ -262,7 +262,7 @@ public class SiteService {
         urlsChildAgg.subAggregation(topHitsAgg);
         sourceBuilder.aggregation(urlsChildAgg);
 
-        log.debug("site_info_query: {}", sourceBuilder);
+        log.info("site_info_query: {}", sourceBuilder);
         SearchResponse response = esSearchService.search(sourceBuilder);
         if (response == null || response.getAggregations() == null) {
             return Collections.emptyList();
@@ -298,7 +298,7 @@ public class SiteService {
 
         sourceBuilder.aggregation(termsAggregationBuilder);
 
-        log.debug("site_major_query: {}", sourceBuilder);
+        log.info("site_major_query: {}", sourceBuilder);
         SearchResponse response = esSearchService.search(sourceBuilder);
         if (response == null || response.getAggregations() == null) {
             return page;

@@ -125,7 +125,7 @@ public class HostService {
         appNameAgg.subAggregation(portAgg);
         sourceBuilder.aggregation(appNameAgg);
 
-        log.debug("host_info_top_finger_query: {}", sourceBuilder);
+        log.info("host_info_top_finger_query: {}", sourceBuilder);
         return esSearchService.getInfoTopWithSearchResponse(esSearchService.search(sourceBuilder), fingerInfo, portInfo);
     }
 
@@ -147,7 +147,7 @@ public class HostService {
         MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");
         ipsAgg.subAggregation(maxAggregationBuilder);
         sourceBuilder.aggregation(ipsAgg);
-        log.debug("host_page_query: {}", sourceBuilder);
+        log.info("host_page_query: {}", sourceBuilder);
         SearchResponse response = esSearchService.search(sourceBuilder);
         if (response == null) {
             return Collections.emptyList();
@@ -204,7 +204,7 @@ public class HostService {
                 .subAggregation(appsTermsAggregationBuilder);
 
         sourceBuilder.aggregation(portAgg);
-        log.debug("host_info_query: {}", sourceBuilder);
+        log.info("host_info_query: {}", sourceBuilder);
         SearchResponse response = esSearchService.search(sourceBuilder);
         if (response == null || response.getAggregations() == null) {
             return Collections.emptyList();

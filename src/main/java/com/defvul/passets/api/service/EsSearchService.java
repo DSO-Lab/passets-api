@@ -276,11 +276,11 @@ public class EsSearchService {
         // 时间范围
         RangeQueryBuilder rangeQueryBuilder = QueryBuilders.rangeQuery("@timestamp");
         if (form.getStart() != null) {
-            rangeQueryBuilder.gte(form.getStart());
+            rangeQueryBuilder.gte(form.getStart().getTime());
         }
 
         if (form.getEnd() != null) {
-            rangeQueryBuilder.lte(form.getEnd());
+            rangeQueryBuilder.lte(form.getEnd().getTime());
         }
 
         // 时间都为空默认获取1天数据
@@ -288,7 +288,7 @@ public class EsSearchService {
             Calendar c = Calendar.getInstance();
             c.setTime(new Date());
             c.add(Calendar.DATE, -1);
-            rangeQueryBuilder.gte(c.getTime());
+            rangeQueryBuilder.gte(c.getTime().getTime());
         }
 
         boolQueryBuilder.filter(rangeQueryBuilder);

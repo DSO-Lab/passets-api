@@ -76,7 +76,7 @@ public class ApiService {
         hostTermsBuilder.subAggregation(hitsAggregationBuilder);
 
         builder.aggregation(hostTermsBuilder);
-        log.debug("api_host_query: {}", builder);
+        log.info("api_host_query: {}", builder);
         SearchResponse response = esSearchService.search(builder);
         if (response == null || response.getAggregations() == null) {
             return Collections.emptyList();
@@ -111,7 +111,7 @@ public class ApiService {
         urlsChildAgg.subAggregation(topHitsAgg);
         builder.aggregation(urlsChildAgg);
 
-        log.debug("api_site_query: {}", builder);
+        log.info("api_site_query: {}", builder);
         SearchResponse response = esSearchService.search(builder);
         if (response == null || response.getAggregations() == null) {
             return null;
