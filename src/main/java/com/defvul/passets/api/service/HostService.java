@@ -56,7 +56,8 @@ public class HostService {
             "site",
             "apps",
             "url",
-            "tag"
+            "tag",
+            "title",
     };
 
     private static final String[] INCLUDE_APPS = new String[]{
@@ -224,7 +225,7 @@ public class HostService {
                 // title
                 ParsedFilter titleParsed = portTerms.getAggregations().get(titleFilter);
                 Terms titleTerms = titleParsed.getAggregations().get(titleCount);
-                if (titleTerms != null && !titleTerms.getBuckets().isEmpty()) {
+                if (titleTerms != null && !titleTerms.getBuckets().isEmpty() && StringUtils.isBlank(infoBO.getTitle())) {
                     infoBO.setTitle(titleTerms.getBuckets().get(0).getKeyAsString());
                 }
                 // 组件

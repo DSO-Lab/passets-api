@@ -224,7 +224,7 @@ public class SiteService {
             // title
             ParsedFilter titleParsed = bucket.getAggregations().get(titleFilter);
             Terms titleTerms = titleParsed.getAggregations().get(titleCount);
-            if (!titleTerms.getBuckets().isEmpty()) {
+            if (!titleTerms.getBuckets().isEmpty() && StringUtils.isBlank(bo.getTitle())) {
                 bo.setTitle(titleTerms.getBuckets().get(0).getKeyAsString());
             }
             Set<ApplicationVO> apps = new HashSet<>();
