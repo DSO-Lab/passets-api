@@ -74,7 +74,7 @@ public class HostService {
     public Page<HostBO> page(QueryPageForm form) {
         Page<HostBO> page = form.toPage();
         // 如果端口不正确， 返回空数据
-        if (CommonUtil.isPort(form.getPort())) {
+        if (StringUtils.isNoneBlank(form.getPort()) && !CommonUtil.isPort(form.getPort())) {
             return page;
         }
         page.setData(query(form, page));
