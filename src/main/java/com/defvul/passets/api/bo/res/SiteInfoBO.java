@@ -43,6 +43,13 @@ public class SiteInfoBO {
     @ApiModelProperty(value = "来源")
     private String tag;
 
+    @SerializedName("min_date")
+    @ApiModelProperty(value = "首次发现时间")
+    private Date minDate;
+
+    @SerializedName("max_date")
+    @ApiModelProperty(value = "最后发现时间")
+    private Date maxDate;
 
 
 }

@@ -249,6 +249,8 @@ public class SiteService {
     private List<SiteInfoBO> queryInfo(QueryBaseForm form) {
         String pathTermName = "site_info_path";
         String topHits = "site_score_hits";
+        String stats = "site_info_times";
+
 
         SearchSourceBuilder sourceBuilder = esSearchService.getSourceBuilder();
         sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form));
@@ -256,6 +258,9 @@ public class SiteService {
 
         // 用url_tpl进行聚合计算
         TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(pathTermName).field("url_tpl.keyword").size(EsSearchService.SIZE);
+        // 时间统计
+        StatsAggregationBuilder statsAggregationBuilder = AggregationBuilders.stats(stats).field("@timestamp");
+        urlsChildAgg.subAggregation(statsAggregationBuilder);
         // 源数据
         TopHitsAggregationBuilder topHitsAgg = AggregationBuilders.topHits(topHits)
                 .fetchSource(INCLUDE_SOURCE_INFO, null).sort("@timestamp", SortOrder.DESC).size(1);
@@ -272,7 +277,12 @@ public class SiteService {
 
         Terms terms = response.getAggregations().get(pathTermName);
         for (Terms.Bucket bucket : terms.getBuckets()) {
-            siteInfoList.add(esSearchService.getHitsByBucket(bucket, topHits, SiteInfoBO.class));
+            SiteInfoBO bo = esSearchService.getHitsByBucket(bucket, topHits, SiteInfoBO.class);
+            // 时间
+            ParsedStats timeStats = bucket.getAggregations().get(stats);
+            bo.setMinDate(esSearchService.parseDate(timeStats.getMinAsString()));
+            bo.setMaxDate(esSearchService.parseDate(timeStats.getMaxAsString()));
+            siteInfoList.add(bo);
         }
         return siteInfoList;
     }
