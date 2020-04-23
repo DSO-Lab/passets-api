@@ -13,6 +13,9 @@ import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilde
 import org.elasticsearch.search.aggregations.metrics.ParsedTopHits;
 import org.elasticsearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.FieldSortBuilder;
+import org.elasticsearch.search.sort.SortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -71,7 +74,10 @@ public class ApiService {
         // 主机聚合
         TermsAggregationBuilder hostTermsBuilder = AggregationBuilders.terms(hostTermName).field("host.keyword").size(EsSearchService.SIZE);
         // 获取数据源， 根据title排序
-        TopHitsAggregationBuilder hitsAggregationBuilder = AggregationBuilders.topHits(hitTermName).size(1).sort("title.keyword", SortOrder.DESC);
+        List<SortBuilder<?>> sorts = new ArrayList<>();
+        sorts.add(SortBuilders.fieldSort("pro.keyword").order(SortOrder.ASC));
+        sorts.add(SortBuilders.fieldSort("title.keyword").order(SortOrder.DESC));
+        TopHitsAggregationBuilder hitsAggregationBuilder = AggregationBuilders.topHits(hitTermName).size(1).sorts(sorts);
         hitsAggregationBuilder.fetchSource(INCLUDE_HOST, null);
         hostTermsBuilder.subAggregation(hitsAggregationBuilder);
 
