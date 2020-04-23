@@ -7,10 +7,7 @@ import com.defvul.passets.api.service.ApiService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -38,6 +35,11 @@ public class ApiController {
     @ApiOperation(value = "根据site查询所有url")
     private List<BaseInfoBO> urls(@RequestBody QueryInfoForm form) {
         return apiService.queryUrls(form);
+    }
 
+    @GetMapping("/connection")
+    @ApiOperation(value = "测试连接")
+    private boolean testConnection() {
+        return true;
     }
 }
