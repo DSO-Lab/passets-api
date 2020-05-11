@@ -322,8 +322,10 @@ public class SiteService {
         List<BaseInfoBO> rows = new ArrayList<>();
         for (SearchHit searchHit : response.getHits()) {
             BaseInfoBO bo = new Gson().fromJson(searchHit.getSourceAsString(), BaseInfoBO.class);
-            bo.setCount(countMap.get(bo.getUrlTpl().toLowerCase()));
-            rows.add(bo);
+            if (bo != null && bo.getUrlTpl() != null) {
+                bo.setCount(countMap.get(bo.getUrlTpl().toLowerCase()));
+                rows.add(bo);
+            }
         }
         page.setData(rows);
 
