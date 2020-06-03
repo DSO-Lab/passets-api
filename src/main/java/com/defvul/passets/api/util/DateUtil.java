@@ -11,8 +11,8 @@ import java.util.Date;
  * @author wimas
  */
 public class DateUtil {
-    public static String YYYY_MM_DD = "yyyy-MM-dd";
-    public static String YYYYMMDD = "yyyyMMdd";
+    public final static String YYYY_MM_DD = "yyyy-MM-dd";
+    public final static String YYYYMMDD = "yyyyMMdd";
 
     public static String format(Date time) {
         return format(time, YYYY_MM_DD);

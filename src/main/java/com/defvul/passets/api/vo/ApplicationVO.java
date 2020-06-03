@@ -46,7 +46,11 @@ public class ApplicationVO {
 
     @Override
     public boolean equals(Object obj) {
-        return name.equals(((ApplicationVO) obj).getName());
+        if (obj != null) {
+            return name.equals(((ApplicationVO) obj).getName());
+        } else {
+            return false;
+        }
     }
 
     @Override

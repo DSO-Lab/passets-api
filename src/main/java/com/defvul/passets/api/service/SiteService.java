@@ -308,7 +308,7 @@ public class SiteService {
 
         sourceBuilder.aggregation(termsAggregationBuilder);
 
-        log.info("site_major_query: {}", sourceBuilder);
+        log.debug("site_major_query: {}", sourceBuilder);
         SearchResponse response = esSearchService.search(sourceBuilder);
         if (response == null || response.getAggregations() == null) {
             return page;
@@ -323,8 +323,16 @@ public class SiteService {
         for (SearchHit searchHit : response.getHits()) {
             BaseInfoBO bo = new Gson().fromJson(searchHit.getSourceAsString(), BaseInfoBO.class);
             if (bo != null && bo.getUrlTpl() != null) {
-                bo.setCount(countMap.get(bo.getUrlTpl().toLowerCase()));
+                String url_tpl = bo.getUrlTpl().toLowerCase();
+                if (countMap.containsKey(url_tpl)) {
+                    bo.setCount(countMap.get(url_tpl));
+                } else {
+                    bo.setCount(1L);
+                }
+
                 rows.add(bo);
+            } else {
+                log.debug("BaseInfoBO is null.");
             }
         }
         page.setData(rows);
