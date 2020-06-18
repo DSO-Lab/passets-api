@@ -28,35 +28,35 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(secretInterceptor)
-                .excludePathPatterns("/swagger**")
-                .excludePathPatterns("/swagger-resources/**")
-                .excludePathPatterns("/v2/**")
-                .excludePathPatterns("/webjars/**")
+                // .excludePathPatterns("/swagger**")
+                // .excludePathPatterns("/swagger-resources/**")
+                // .excludePathPatterns("/v2/**")
+                // .excludePathPatterns("/webjars/**")
                 .addPathPatterns("/**");
     }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("swagger-ui.html")
-                .addResourceLocations("classpath:/META-INF/resources/");
+        // registry.addResourceHandler("swagger-ui.html")
+        //         .addResourceLocations("classpath:/META-INF/resources/");
 
-        registry.addResourceHandler("/webjars/**")
-                .addResourceLocations("classpath:/META-INF/resources/webjars/");
+        // registry.addResourceHandler("/webjars/**")
+        //         .addResourceLocations("classpath:/META-INF/resources/webjars/");
     }
 
-    @Bean
-    public FilterRegistrationBean corsFilter() {
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true);
-        config.addAllowedOrigin("*");
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");
-        source.registerCorsConfiguration("/**", config);
-        FilterRegistrationBean bean = new FilterRegistrationBean(new CorsFilter(source));
-        bean.setOrder(0);
-        return bean;
-    }
+    // @Bean
+    // public FilterRegistrationBean corsFilter() {
+    //     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    //     CorsConfiguration config = new CorsConfiguration();
+    //     config.setAllowCredentials(true);
+    //     config.addAllowedOrigin("*");
+    //     config.addAllowedHeader("*");
+    //     config.addAllowedMethod("*");
+    //     source.registerCorsConfiguration("/**", config);
+    //     FilterRegistrationBean bean = new FilterRegistrationBean(new CorsFilter(source));
+    //     bean.setOrder(0);
+    //     return bean;
+    // }
 
 
 }
