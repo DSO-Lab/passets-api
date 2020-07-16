@@ -76,7 +76,7 @@ public class ApiService {
         // 获取数据源， 根据title排序
         List<SortBuilder<?>> sorts = new ArrayList<>();
         sorts.add(SortBuilders.fieldSort("pro.keyword").order(SortOrder.ASC));
-        sorts.add(SortBuilders.fieldSort("title.keyword").order(SortOrder.DESC));
+        sorts.add(SortBuilders.fieldSort("title").unmappedType("keyword").order(SortOrder.DESC));
         TopHitsAggregationBuilder hitsAggregationBuilder = AggregationBuilders.topHits(hitTermName).size(1).sorts(sorts);
         hitsAggregationBuilder.fetchSource(INCLUDE_HOST, null);
         hostTermsBuilder.subAggregation(hitsAggregationBuilder);
