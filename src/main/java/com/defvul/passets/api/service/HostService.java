@@ -141,8 +141,8 @@ public class HostService {
             sourceBuilder.size(1);
         }
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
-        sourceBuilder.fetchSource(INCLUDE_SOURCE, null).collapse(new CollapseBuilder("ip.keyword"));
-        TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(termName).field("ip.keyword").size(EsSearchService.SIZE);
+        sourceBuilder.fetchSource(INCLUDE_SOURCE, null).collapse(new CollapseBuilder("ip"));
+        TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(termName).field("ip").size(EsSearchService.SIZE);
         ipsAgg.order(BucketOrder.aggregation("timestamp_order", false));
 
         MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");

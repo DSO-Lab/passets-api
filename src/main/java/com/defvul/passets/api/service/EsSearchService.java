@@ -125,7 +125,7 @@ public class EsSearchService {
 //            if ("pros".equals(termName)) {
 //                statsCountAgg.field("host.keyword");
 //            } else {
-            statsCountAgg.field("ip.keyword");
+            statsCountAgg.field("ip");
 //            }
             sourceBuilder.query(getBoolQueryWithQueryForm(form));
         } else {
@@ -202,7 +202,7 @@ public class EsSearchService {
 
         // IP
         if (StringUtils.isNotBlank(form.getIp())) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("ip.keyword", form.getIp()));
+            boolQueryBuilder.filter(QueryBuilders.termQuery("ip", form.getIp()));
         }
 
         // 端口
