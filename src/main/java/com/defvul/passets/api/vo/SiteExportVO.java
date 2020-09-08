@@ -81,7 +81,7 @@ public class SiteExportVO {
     private Set<String> paths;
 
     public String getPath() {
-        return Strings.join(paths, ",");
+        return Strings.join(this.paths, ",");
 
     }
 }
