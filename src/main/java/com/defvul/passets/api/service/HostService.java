@@ -6,11 +6,15 @@ import com.defvul.passets.api.bo.req.QueryPageForm;
 import com.defvul.passets.api.bo.res.*;
 import com.defvul.passets.api.util.CommonUtil;
 import com.defvul.passets.api.vo.ApplicationVO;
+import com.defvul.passets.api.vo.HostExportVO;
 import com.defvul.passets.api.vo.Page;
+import com.github.crab2died.ExcelUtils;
 import com.google.gson.Gson;
+import joptsimple.internal.Strings;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
@@ -24,9 +28,11 @@ import org.elasticsearch.search.aggregations.metrics.*;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.sort.SortOrder;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -244,5 +250,136 @@ public class HostService {
             }
         }
         return hostInfoBOList.parallelStream().sorted(Comparator.comparing(HostInfoBO::getMaxDate).reversed()).collect(Collectors.toList());
+    }
+
+    public void ipExport(QueryBaseForm form, HttpServletResponse response) {
+        response.setContentType("application/octet-stream");
+        response.setHeader("Content-Disposition", "attachment;filename=" + "ip.xlsx");
+        response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+        List<HostExportVO> vos = ipBoToVo(getIpBo(form));
+        try {
+            ExcelUtils.getInstance().exportObjects2Excel(vos, HostExportVO.class, true,
+                    "IP资产", true, response.getOutputStream());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List<HostExportBO> getIpBo(QueryBaseForm form) {
+        String ipAggs = "ip_aggs";
+        String portAggs = "port_aggs";
+        String ipPortHits = "ip_port_hits";
+        String appsAggs = "apps_aggs";
+        String appsTopHits = "apps_top_hits";
+
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.size(0);
+        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form));
+
+        TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(ipAggs).field("ip_str.keyword").size(EsSearchService.SIZE);
+
+        TermsAggregationBuilder portAgg = AggregationBuilders.terms(portAggs).field("port").size(EsSearchService.SIZE);
+        ipsAgg.subAggregation(portAgg);
+
+        TopHitsAggregationBuilder ipPortTopHitsAgg = AggregationBuilders.topHits(ipPortHits).size(1)
+                .sort("@timestamp", SortOrder.DESC).fetchSource(new String[]{"geoip", "inner", "@timestamp", "certs", "tag"}, null);
+        portAgg.subAggregation(ipPortTopHitsAgg);
+
+        TermsAggregationBuilder appsTermsAggregationBuilder = AggregationBuilders.terms(appsAggs).field("apps.name.keyword").size(200);
+        appsTermsAggregationBuilder.subAggregation(AggregationBuilders.topHits(appsTopHits).size(1).sort("@timestamp", SortOrder.DESC).fetchSource("apps", null));
+        portAgg.subAggregation(appsTermsAggregationBuilder);
+
+        sourceBuilder.aggregation(ipsAgg);
+        System.out.println("sourceBuilder = " + sourceBuilder);
+
+        long star = System.currentTimeMillis();
+        SearchResponse searchResponse = esSearchService.search(sourceBuilder);
+        if (searchResponse == null || searchResponse.getAggregations() == null) {
+            return Collections.emptyList();
+        }
+        Terms terms = searchResponse.getAggregations().get(ipAggs);
+        List<HostExportBO> bos = new ArrayList<>();
+        for (Terms.Bucket bucket : terms.getBuckets()) {
+            String ip = bucket.getKeyAsString();
+            Terms portTerms = bucket.getAggregations().get(portAggs);
+            if (!portTerms.getBuckets().isEmpty()) {
+                for (Terms.Bucket portBucket : portTerms.getBuckets()) {
+                    String port = portBucket.getKeyAsString();
+
+                    HostExportBO bo = esSearchService.getHitsByBucket(portBucket, ipPortHits, HostExportBO.class);
+                    bo.setIp(ip);
+                    bo.setPort(port);
+                    List<ApplicationVO> apps = new ArrayList<>();
+                    Terms appsTerms = portBucket.getAggregations().get(appsAggs);
+                    for (Terms.Bucket appsBucket : appsTerms.getBuckets()) {
+                        ApplicationVO app = esSearchService.getHitsByBucket(appsBucket, appsTopHits, ApplicationVO.class);
+                        apps.add(app);
+                    }
+                    bo.setApps(apps);
+                    bos.add(bo);
+                }
+            }
+        }
+        long end = System.currentTimeMillis();
+        long oo = (end - star);
+        System.out.println("查询资产花费： " + oo + "毫秒");
+        return bos;
+    }
+
+    private List<HostExportVO> ipBoToVo(List<HostExportBO> bos) {
+        List<HostExportVO> vos = new ArrayList<>();
+        for (HostExportBO bo : bos) {
+            HostExportVO vo = new HostExportVO();
+            BeanUtils.copyProperties(bo, vo, "inner");
+            vo.setInner(bo.isInner() ? "内网" : "外网");
+            for (ApplicationVO app : bo.getApps()) {
+                if (StringUtils.isNotBlank(app.getName())) {
+                    String version = StringUtils.isNotBlank(app.getVersion()) ? app.getVersion() : "未知";
+                    String nameVersion = app.getName() + "(" + version + ")";
+                    vo.getNameVersion().add(nameVersion);
+                }
+            }
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getDevice())).limit(1).forEach(a -> vo.setDevice(a.getDevice()));
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getService())).limit(1).forEach(a -> vo.setService(a.getService()));
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getOs())).limit(1).forEach(a -> vo.setOs(a.getOs()));
+            if (bo.getGeoIp() != null) {
+                String countryName = null;
+                if (StringUtils.isNotBlank(bo.getGeoIp().getCountryName())) {
+                    countryName = bo.getGeoIp().getCountryName();
+
+                }
+                String city = null;
+                if (StringUtils.isNotBlank(bo.getGeoIp().getCityName())) {
+                    city = bo.getGeoIp().getCityName();
+                }
+                vo.setPosition((countryName == null ? "" : countryName) + (city == null ? "" : city));
+                if (bo.getGeoIp().getLocation() != null) {
+                    vo.setDegree(bo.getGeoIp().getLocation().getLon() + "," + bo.getGeoIp().getLocation().getLat());
+                }
+            }
+            vos.add(vo);
+
+        }
+        return vos;
+    }
+
+    private List<String> getIp() {
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.size(0);
+
+        TermsAggregationBuilder ipsAgg = AggregationBuilders.terms("ip_aggs").field("ip_str.keyword").size(EsSearchService.SIZE);
+
+        sourceBuilder.aggregation(ipsAgg);
+        System.out.println("sourceBuilder = " + sourceBuilder);
+
+        SearchResponse response = esSearchService.search(sourceBuilder);
+        List<String> ips = new ArrayList<>();
+        if (response != null || response.getAggregations() != null) {
+            Terms terms = response.getAggregations().get("ip_aggs");
+            for (Terms.Bucket bucket : terms.getBuckets()) {
+                ips.add(bucket.getKeyAsString());
+            }
+        }
+        return ips;
     }
 }

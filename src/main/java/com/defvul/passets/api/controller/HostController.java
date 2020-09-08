@@ -21,7 +21,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/host")
 @Api(tags = "主机")
-public class HostController {
+public class HostController extends BaseController {
+
     @Autowired
     private HostService hostService;
 
@@ -41,6 +42,18 @@ public class HostController {
     @ApiOperation(value = "主机top")
     public TopBO top(@RequestBody QueryBaseForm form) {
         return hostService.top(form);
+    }
+
+    @PostMapping("/export")
+    @ApiOperation(value = "ip导出")
+    public void ipExport(@RequestBody QueryBaseForm form) {
+        hostService.ipExport(form, response);
+    }
+
+    @GetMapping("/test")
+    @ApiOperation(value = "ip导出")
+    public void test() {
+        hostService.ipExport(new QueryBaseForm(), response);
     }
 
 }

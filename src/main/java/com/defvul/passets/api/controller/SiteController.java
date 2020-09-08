@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/site")
 @Api(tags = "站点")
-public class SiteController {
+public class SiteController extends BaseController {
     @Autowired
     private SiteService siteService;
 
@@ -48,5 +48,11 @@ public class SiteController {
     @ApiOperation(value = "重要站点分类")
     public Page<BaseInfoBO> majorPage(@RequestBody QueryPageForm form) {
         return siteService.majorPage(form);
+    }
+
+    @PostMapping("/export")
+    @ApiOperation(value = "url导出")
+    public void urlExport(@RequestBody QueryBaseForm form) {
+        siteService.urlExport(form, response);
     }
 }

@@ -1,0 +1,44 @@
+#server:
+#  port: ${SERVER_PORT:8081}
+#spring:
+#  application:
+#    name: passets-api
+#  http:
+#    converters:
+#      preferred-json-mapper: gson
+#  gson:
+#    date-format: yyyy-MM-dd HH:mm:ss
+#management:
+#  endpoint:
+#    health:
+#      show-details: always
+#logging:
+#  level:
+#    com.defvul: ${LOG_LEVEL:info}
+#elasticsearch:
+#  url: ${ELASTICSEARCH_URL:http://192.168.199.10:9200}
+#  index: ${ELASTICSEARCH_INDEX:logstash-passets}
+#secret: ${SECRET:dsolabpassetsapisecret}
+#data-save-day: ${DATA_SAVE_DAY:30}
+server:
+  port: 8081
+spring:
+  application:
+    name: passets-api
+  http:
+    converters:
+      preferred-json-mapper: gson
+  gson:
+    date-format: yyyy-MM-dd HH:mm:ss
+management:
+  endpoint:
+    health:
+      show-details: always
+logging:
+  level:
+    com.defvul: info
+elasticsearch:
+  url: http://192.168.199.10:9200
+  index: logstash-passets
+secret: dsolabpassetsapisecret
+data-save-day: 30

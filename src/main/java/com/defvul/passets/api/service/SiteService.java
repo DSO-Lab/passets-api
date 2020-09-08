@@ -5,7 +5,10 @@ import com.defvul.passets.api.bo.req.QueryInfoForm;
 import com.defvul.passets.api.bo.req.QueryPageForm;
 import com.defvul.passets.api.bo.res.*;
 import com.defvul.passets.api.vo.ApplicationVO;
+import com.defvul.passets.api.vo.HostExportVO;
 import com.defvul.passets.api.vo.Page;
+import com.defvul.passets.api.vo.SiteExportVO;
+import com.github.crab2died.ExcelUtils;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -24,9 +27,11 @@ import org.elasticsearch.search.aggregations.metrics.*;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.sort.SortOrder;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -304,7 +309,7 @@ public class SiteService {
         String childTermName = "urls_child";
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
         sourceBuilder.fetchSource(INCLUDE_SOURCE_MAJOR, null).collapse(new CollapseBuilder("url_tpl.keyword"));
-        TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(childTermName).field("url_tpl.keyword").size(EsSearchService.SIZE);
+        TermsAggregationBuilder termsAggregationBuilder = AggregationBuilders.terms(childTermName).field("url_tpl.keyword").size(1000);
 
         sourceBuilder.aggregation(termsAggregationBuilder);
 
@@ -331,4 +336,219 @@ public class SiteService {
 
         return page;
     }
+
+    public void urlExport(QueryBaseForm form, HttpServletResponse response) {
+        response.setContentType("application/octet-stream");
+        response.setHeader("Content-Disposition", "attachment;filename=" + "url.xlsx");
+        response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+        List<SiteExportVO> vos = urlBoToVo(getUrlBo(form));
+        try {
+            ExcelUtils.getInstance().exportObjects2Excel(vos, SiteExportVO.class, true,
+                    "URL资产", true, response.getOutputStream());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private List<SiteExportBO> getUrlBo(QueryBaseForm form) {
+        String termName = "site_aggs";
+        String urlTopHits = "site_top_hits";
+        String urlTplTopHits = "site_url_tpl_hits";
+        String appsName = "site_apps_term";
+        String appsHit = "site_apps_hit";
+        String pathTermName = "site_info_path";
+
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.size(0);
+        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form));
+
+        // 站点聚合
+        TermsAggregationBuilder urlsAgg = AggregationBuilders.terms(termName).field("site.keyword").size(EsSearchService.SIZE);
+        TopHitsAggregationBuilder urlsTop = AggregationBuilders.topHits(urlTopHits).sort("@timestamp", SortOrder.DESC)
+                .fetchSource(new String[]{"geoip", "inner", "@timestamp", "certs", "tag", "port", "ip", "header", "code"}, null).size(1);
+        urlsAgg.subAggregation(urlsTop);
+
+        // 末次更新时间
+        MaxAggregationBuilder maxAgg = AggregationBuilders.max("timestamp_order").field("@timestamp");
+        urlsAgg.subAggregation(maxAgg);
+        // 模板聚合
+        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(pathTermName).field("url_tpl.keyword").size(500);
+        TopHitsAggregationBuilder urlTplTop = AggregationBuilders.topHits(urlTplTopHits).size(1);
+        urlsChildAgg.subAggregation(urlTplTop);
+        urlsAgg.subAggregation(urlsChildAgg);
+
+        // 指纹聚合
+        TermsAggregationBuilder appsTermsAggregationBuilder = AggregationBuilders.terms(appsName).field("apps.name.keyword").size(200);
+        appsTermsAggregationBuilder.subAggregation(AggregationBuilders.topHits(appsHit).size(1).sort("@timestamp", SortOrder.DESC).fetchSource("apps", null));
+        urlsAgg.subAggregation(appsTermsAggregationBuilder);
+
+        sourceBuilder.aggregation(urlsAgg);
+        SearchResponse response = esSearchService.search(sourceBuilder);
+
+        if (response == null || response.getAggregations() == null) {
+            return Collections.emptyList();
+        }
+
+        Terms urlTerms = response.getAggregations().get(termName);
+        List<SiteExportBO> bos = new ArrayList<>();
+        for (Terms.Bucket urlBucket : urlTerms.getBuckets()) {
+            String url = urlBucket.getKeyAsString();
+            SiteExportBO bo = esSearchService.getHitsByBucket(urlBucket, urlTopHits, SiteExportBO.class);
+            bo.setSite(url);
+            Set<String> paths = new HashSet<>();
+            Terms urlTplTerms = urlBucket.getAggregations().get(pathTermName);
+            for (Terms.Bucket urlTplBucket : urlTplTerms.getBuckets()) {
+                paths.add(urlTplBucket.getKeyAsString());
+                bo = esSearchService.getHitsByBucket(urlTplBucket, urlTplTopHits, SiteExportBO.class);
+            }
+
+            Set<ApplicationVO> apps = new HashSet<>();
+            Terms appsTerms = urlBucket.getAggregations().get(appsName);
+            for (Terms.Bucket appsBucket : appsTerms.getBuckets()) {
+                BaseInfoBO app = esSearchService.getHitsByBucket(appsBucket, appsHit, BaseInfoBO.class);
+                if (app != null && app.getApps().isEmpty()) {
+                    apps.addAll(app.getApps());
+                }
+            }
+            bo.setApps(new ArrayList<>(apps));
+            bos.add(bo);
+
+        }
+
+        System.out.println("sourceBuilder = " + sourceBuilder);
+        return bos;
+    }
+
+    private List<SiteExportVO> urlBoToVo(List<SiteExportBO> bos) {
+        List<SiteExportVO> vos = new ArrayList<>();
+        for (SiteExportBO bo : bos) {
+            SiteExportVO vo = new SiteExportVO();
+            BeanUtils.copyProperties(bo, vo, "inner");
+            vo.setInner(bo.isInner() ? "内网" : "外网");
+            for (ApplicationVO app : bo.getApps()) {
+                if (StringUtils.isNotBlank(app.getName())) {
+                    String version = StringUtils.isNotBlank(app.getVersion()) ? app.getVersion() : "未知";
+                    String nameVersion = app.getName() + "(" + version + ")";
+                    vo.getNameVersion().add(nameVersion);
+                }
+            }
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getDevice())).limit(1).forEach(a -> vo.setDevice(a.getDevice()));
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getService())).limit(1).forEach(a -> vo.setService(a.getService()));
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getOs())).limit(1).forEach(a -> vo.setOs(a.getOs()));
+            if (bo.getGeoIp() != null) {
+                String countryName = null;
+                if (StringUtils.isNotBlank(bo.getGeoIp().getCountryName())) {
+                    countryName = bo.getGeoIp().getCountryName();
+
+                }
+                String city = null;
+                if (StringUtils.isNotBlank(bo.getGeoIp().getCityName())) {
+                    city = bo.getGeoIp().getCityName();
+                }
+                vo.setPosition((countryName == null ? "" : countryName) + (city == null ? "" : city));
+                if (bo.getGeoIp().getLocation() != null) {
+                    vo.setDegree(bo.getGeoIp().getLocation().getLon() + "," + bo.getGeoIp().getLocation().getLat());
+                }
+            }
+            vos.add(vo);
+
+        }
+        return vos;
+    }
+
+//    public static void main(String[] args) {
+//
+//        //查询数据，实际可通过传过来的参数当条件去数据库查询，在此我就用空集合（数据）来替代
+//        List<SiteExportVO> vos = new ArrayList<>();
+//        for (int i = 0; i < 10; i++) {
+//            for (int j = 0; j < 10; j++) {
+//                SiteExportVO vo = new SiteExportVO();
+//                vo.setIp("1.1.1." + i);
+//                vo.setPort("808" + i);
+//                vo.setUrl("http://" + vo.getIp() + vo.getPort());
+//                vo.setPath(vo.getUrl() + j);
+//                vos.add(vo);
+//            }
+//        }
+//        int count = 0, num = 0, sum = 0;
+//        int firstRow = 1;
+//        Map<String, RowNumber> map = new HashMap<>();
+//
+//        Set<String> urlSet = new HashSet<>();
+//        vos.stream().forEach(v -> urlSet.add(v.getUrl()));
+//        for (String vo : urlSet) {
+//            int urlNum = 0;
+//            RowNumber rowNumber = new RowNumber();
+//            for (SiteExportVO vo1 : vos) {
+//                if (vo.equals(vo1.getUrl())) {
+//                    count++;
+//                    urlNum++;
+//                }
+//            }
+//            firstRow = firstRow + urlNum;
+//            if (num == 0) {
+//                rowNumber.setFirstRow(1);
+//                rowNumber.setLastRow(count);
+//            } else {
+//                rowNumber.setFirstRow(vos.size() - sum + 1);
+//                rowNumber.setLastRow(firstRow);
+//            }
+//            sum = vos.size() - count;
+//
+//            map.put(vo, rowNumber);
+//            num++;
+//        }
+//        int index = 1;
+//        for (String key : map.keySet()) {
+//
+//        }
+//
+//        //创建poi导出数据对象
+//        SXSSFWorkbook sxssfWorkbook = new SXSSFWorkbook();
+//
+//        //创建sheet页
+//        SXSSFSheet sheet = sxssfWorkbook.createSheet("开复工项目");
+//
+//        CellRangeAddress region1 = new CellRangeAddress(0, 1, (short) 0, (short) 12);
+//        //参数1：起始行 参数2：终止行 参数3：起始列 参数4：终止列
+//        sheet.addMergedRegion(region1);
+//        SXSSFRow headTitle = sheet.createRow(0);
+//        headTitle.createCell(0).setCellValue("重点工程项目计划表");
+//
+//        //创建表头
+//        SXSSFRow headRow = sheet.createRow(4);
+//        //设置表头信息
+//        headRow.createCell(0).setCellValue("URL");
+//        headRow.createCell(1).setCellValue("IP");
+//        headRow.createCell(2).setCellValue("端口");
+//
+//        headRow.createCell(3).setCellValue("访问路劲");
+//        String yihui = null;
+//
+//        // 遍历上面数据库查到的数据
+//        for (SiteExportVO vo : vos) {
+//            SXSSFRow dataRow = sheet.createRow(sheet.getLastRowNum() + 1);
+//            dataRow.createCell(0).setCellValue(vo.getUrl());
+//            dataRow.createCell(1).setCellValue(vo.getIp());
+//            dataRow.createCell(2).setCellValue(vo.getPort());
+//
+//            dataRow.createCell(3).setCellValue(vo.getPath());
+//
+//        }
+////        // 下载导出
+////        String filename = "XXXXXXX平台工程信息表";
+////        // 设置头信息
+////        response.setCharacterEncoding("UTF-8");
+////        response.setContentType("application/vnd.ms-excel");
+////        //一定要设置成xlsx格式
+////        response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode(filename + ".xlsx", "UTF-8"));
+////        //创建一个输出流
+////        ServletOutputStream outputStream = response.getOutputStream();
+////        //写入数据
+////        sxssfWorkbook.write(outputStream);
+////
+////        // 关闭
+////        outputStream.close();
+////        sxssfWorkbook.close();
+//    }
 }

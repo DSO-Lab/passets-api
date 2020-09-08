@@ -65,7 +65,7 @@ public class EsSearchService {
             Thread.sleep(20000L);
             client.cluster().putSettings(request, RequestOptions.DEFAULT);
         } catch (Exception e) {
-            init();
+//            init();
             log.error("执行es设置报错: {}", ExceptionUtils.getStackTrace(e));
         }
     }
@@ -341,5 +341,4 @@ public class EsSearchService {
         sourceBuilder.timeout(new TimeValue(60, TimeUnit.SECONDS));
         return sourceBuilder;
     }
-
 }
