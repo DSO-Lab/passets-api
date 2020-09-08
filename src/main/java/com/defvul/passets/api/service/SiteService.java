@@ -10,6 +10,7 @@ import com.defvul.passets.api.vo.Page;
 import com.defvul.passets.api.vo.SiteExportVO;
 import com.github.crab2died.ExcelUtils;
 import com.google.gson.Gson;
+import joptsimple.internal.Strings;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.action.search.SearchResponse;
@@ -410,9 +411,9 @@ public class SiteService {
                     apps.addAll(app.getApps());
                 }
             }
+            bo.setPaths(paths);
             bo.setApps(new ArrayList<>(apps));
             bos.add(bo);
-
         }
 
         System.out.println("sourceBuilder = " + sourceBuilder);
@@ -450,6 +451,8 @@ public class SiteService {
                     vo.setDegree(bo.getGeoIp().getLocation().getLon() + "," + bo.getGeoIp().getLocation().getLat());
                 }
             }
+            vo.setPath(Strings.join(vo.getPaths(), ","));
+            vo.setVersion(Strings.join(vo.getNameVersion(), ","));
             vos.add(vo);
 
         }

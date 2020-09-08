@@ -39,7 +39,7 @@ public class SiteExportVO {
 
     @ApiModelProperty(value = "资产服务类型")
     @ExcelField(title = "资产服务类型", order = 7)
-    private List<String> nameVersion;
+    private String version;
 
     @ApiModelProperty(value = "资产类型设备")
     @ExcelField(title = "资产类型设备", order = 8)
@@ -80,9 +80,7 @@ public class SiteExportVO {
 
     private Set<String> paths;
 
-    public String getPath() {
-        return Strings.join(this.paths, ",");
+    private Set<String> nameVersion;
 
-    }
 }
 

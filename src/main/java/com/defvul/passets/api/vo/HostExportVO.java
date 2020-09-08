@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 @Data
 public class HostExportVO {
@@ -26,7 +27,7 @@ public class HostExportVO {
     private String assetsType;
 
     @ExcelField(title = "资产服务类型", order = 6)
-    private List<String> nameVersion;
+    private String version;
 
     @ExcelField(title = "资产类型设备", order = 7)
     private String device;
@@ -48,4 +49,6 @@ public class HostExportVO {
 
     @ExcelField(title = "来源", order = 13)
     private String tag;
+
+    private Set<String> nameVersion;
 }
