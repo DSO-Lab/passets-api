@@ -396,11 +396,12 @@ public class SiteService {
             String url = urlBucket.getKeyAsString();
             SiteExportBO bo = esSearchService.getHitsByBucket(urlBucket, urlTopHits, SiteExportBO.class);
             bo.setSite(url);
+            Max time = urlBucket.getAggregations().get("timestamp_order");
+            bo.setTimestamp(esSearchService.parseDate(time.getValueAsString()));
             Set<String> paths = new HashSet<>();
             Terms urlTplTerms = urlBucket.getAggregations().get(pathTermName);
             for (Terms.Bucket urlTplBucket : urlTplTerms.getBuckets()) {
                 paths.add(urlTplBucket.getKeyAsString());
-                bo = esSearchService.getHitsByBucket(urlTplBucket, urlTplTopHits, SiteExportBO.class);
             }
 
             Set<ApplicationVO> apps = new HashSet<>();
@@ -452,7 +453,7 @@ public class SiteService {
                 }
             }
             vo.setPath(Strings.join(vo.getPaths(), ","));
-            vo.setVersion(Strings.join(vo.getNameVersion(), ","));
+            vo.setVersion(vo.getNameVersion() != null ? Strings.join(vo.getNameVersion(), ",") : "");
             vos.add(vo);
 
         }

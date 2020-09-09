@@ -357,7 +357,7 @@ public class HostService {
                     vo.setDegree(bo.getGeoIp().getLocation().getLon() + "," + bo.getGeoIp().getLocation().getLat());
                 }
             }
-            vo.setVersion(Strings.join(vo.getNameVersion(), ","));
+            vo.setVersion(vo.getNameVersion() != null ? Strings.join(vo.getNameVersion(), ",") : "");
             vos.add(vo);
 
         }
