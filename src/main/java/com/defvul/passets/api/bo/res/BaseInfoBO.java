@@ -15,7 +15,7 @@ import java.util.List;
 public class BaseInfoBO {
 
     @ApiModelProperty(value = "访问次数")
-    private long count;
+    private Long count;
 
     @SerializedName("@timestamp")
     @JsonProperty("@timestamp")

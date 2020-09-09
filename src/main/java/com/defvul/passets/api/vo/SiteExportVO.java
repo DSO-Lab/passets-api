@@ -7,6 +7,7 @@ import joptsimple.internal.Strings;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -63,7 +64,7 @@ public class SiteExportVO {
 
     @ApiModelProperty(value = "最后更新时间")
     @ExcelField(title = "最后更新时间", order = 13)
-    private Date timestamp;
+    private String timestamp;
 
     @ApiModelProperty(value = "来源")
     @ExcelField(title = "来源", order = 14)
@@ -80,7 +81,7 @@ public class SiteExportVO {
 
     private Set<String> paths;
 
-    private Set<String> nameVersion;
+    private Set<String> nameVersion = new HashSet<>();
 
 }
 

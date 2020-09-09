@@ -13,6 +13,7 @@ import java.util.Date;
 public class DateUtil {
     public static String YYYY_MM_DD = "yyyy-MM-dd";
     public static String YYYYMMDD = "yyyyMMdd";
+    public static String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
 
     public static String format(Date time) {
         return format(time, YYYY_MM_DD);

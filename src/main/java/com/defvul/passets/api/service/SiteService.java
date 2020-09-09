@@ -4,6 +4,7 @@ import com.defvul.passets.api.bo.req.QueryBaseForm;
 import com.defvul.passets.api.bo.req.QueryInfoForm;
 import com.defvul.passets.api.bo.req.QueryPageForm;
 import com.defvul.passets.api.bo.res.*;
+import com.defvul.passets.api.util.DateUtil;
 import com.defvul.passets.api.vo.ApplicationVO;
 import com.defvul.passets.api.vo.HostExportVO;
 import com.defvul.passets.api.vo.Page;
@@ -333,6 +334,7 @@ public class SiteService {
                 rows.add(bo);
             }
         }
+
         page.setData(rows);
 
         return page;
@@ -396,8 +398,6 @@ public class SiteService {
             String url = urlBucket.getKeyAsString();
             SiteExportBO bo = esSearchService.getHitsByBucket(urlBucket, urlTopHits, SiteExportBO.class);
             bo.setSite(url);
-            Max time = urlBucket.getAggregations().get("timestamp_order");
-            bo.setTimestamp(esSearchService.parseDate(time.getValueAsString()));
             Set<String> paths = new HashSet<>();
             Terms urlTplTerms = urlBucket.getAggregations().get(pathTermName);
             for (Terms.Bucket urlTplBucket : urlTplTerms.getBuckets()) {
@@ -408,12 +408,16 @@ public class SiteService {
             Terms appsTerms = urlBucket.getAggregations().get(appsName);
             for (Terms.Bucket appsBucket : appsTerms.getBuckets()) {
                 BaseInfoBO app = esSearchService.getHitsByBucket(appsBucket, appsHit, BaseInfoBO.class);
-                if (app != null && app.getApps().isEmpty()) {
+                if (app != null && !app.getApps().isEmpty()) {
                     apps.addAll(app.getApps());
                 }
             }
             bo.setPaths(paths);
             bo.setApps(new ArrayList<>(apps));
+
+            Max time = urlBucket.getAggregations().get("timestamp_order");
+            bo.setTimestamp(esSearchService.parseDate(time.getValueAsString()));
+
             bos.add(bo);
         }
 
@@ -425,7 +429,7 @@ public class SiteService {
         List<SiteExportVO> vos = new ArrayList<>();
         for (SiteExportBO bo : bos) {
             SiteExportVO vo = new SiteExportVO();
-            BeanUtils.copyProperties(bo, vo, "inner");
+            BeanUtils.copyProperties(bo, vo, "inner", "timestamp");
             vo.setInner(bo.isInner() ? "内网" : "外网");
             for (ApplicationVO app : bo.getApps()) {
                 if (StringUtils.isNotBlank(app.getName())) {
@@ -434,9 +438,9 @@ public class SiteService {
                     vo.getNameVersion().add(nameVersion);
                 }
             }
-            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getDevice())).limit(1).forEach(a -> vo.setDevice(a.getDevice()));
-            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getService())).limit(1).forEach(a -> vo.setService(a.getService()));
-            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getOs())).limit(1).forEach(a -> vo.setOs(a.getOs()));
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getDevice())).forEach(a -> vo.setDevice(a.getDevice()));
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getService())).forEach(a -> vo.setService(a.getService()));
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getOs())).forEach(a -> vo.setOs(a.getOs()));
             if (bo.getGeoIp() != null) {
                 String countryName = null;
                 if (StringUtils.isNotBlank(bo.getGeoIp().getCountryName())) {
@@ -452,8 +456,9 @@ public class SiteService {
                     vo.setDegree(bo.getGeoIp().getLocation().getLon() + "," + bo.getGeoIp().getLocation().getLat());
                 }
             }
-            vo.setPath(Strings.join(vo.getPaths(), ","));
-            vo.setVersion(vo.getNameVersion() != null ? Strings.join(vo.getNameVersion(), ",") : "");
+            vo.setPath(Strings.join(vo.getPaths(), ",\n"));
+            vo.setVersion(vo.getNameVersion() != null ? Strings.join(vo.getNameVersion(), ",\n") : "");
+            vo.setTimestamp(DateUtil.format(bo.getTimestamp(), DateUtil.YYYY_MM_DD_HH_MM_SS));
             vos.add(vo);
 
         }

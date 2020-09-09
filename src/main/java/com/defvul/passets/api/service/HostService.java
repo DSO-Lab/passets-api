@@ -5,6 +5,7 @@ import com.defvul.passets.api.bo.req.QueryInfoForm;
 import com.defvul.passets.api.bo.req.QueryPageForm;
 import com.defvul.passets.api.bo.res.*;
 import com.defvul.passets.api.util.CommonUtil;
+import com.defvul.passets.api.util.DateUtil;
 import com.defvul.passets.api.vo.ApplicationVO;
 import com.defvul.passets.api.vo.HostExportVO;
 import com.defvul.passets.api.vo.Page;
@@ -309,13 +310,15 @@ public class HostService {
                     HostExportBO bo = esSearchService.getHitsByBucket(portBucket, ipPortHits, HostExportBO.class);
                     bo.setIp(ip);
                     bo.setPort(port);
-                    List<ApplicationVO> apps = new ArrayList<>();
+                    Set<ApplicationVO> apps = new HashSet<>();
                     Terms appsTerms = portBucket.getAggregations().get(appsAggs);
                     for (Terms.Bucket appsBucket : appsTerms.getBuckets()) {
-                        ApplicationVO app = esSearchService.getHitsByBucket(appsBucket, appsTopHits, ApplicationVO.class);
-                        apps.add(app);
+                        BaseInfoBO app = esSearchService.getHitsByBucket(appsBucket, appsTopHits, BaseInfoBO.class);
+                        if (app != null && !app.getApps().isEmpty()) {
+                            apps.addAll(app.getApps());
+                        }
                     }
-                    bo.setApps(apps);
+                    bo.setApps(new ArrayList<>(apps));
                     bos.add(bo);
                 }
             }
@@ -330,7 +333,7 @@ public class HostService {
         List<HostExportVO> vos = new ArrayList<>();
         for (HostExportBO bo : bos) {
             HostExportVO vo = new HostExportVO();
-            BeanUtils.copyProperties(bo, vo, "inner");
+            BeanUtils.copyProperties(bo, vo, "inner", "timestamp");
             vo.setInner(bo.isInner() ? "内网" : "外网");
             for (ApplicationVO app : bo.getApps()) {
                 if (StringUtils.isNotBlank(app.getName())) {
@@ -339,9 +342,9 @@ public class HostService {
                     vo.getNameVersion().add(nameVersion);
                 }
             }
-            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getDevice())).limit(1).forEach(a -> vo.setDevice(a.getDevice()));
-            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getService())).limit(1).forEach(a -> vo.setService(a.getService()));
-            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getOs())).limit(1).forEach(a -> vo.setOs(a.getOs()));
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getDevice())).forEach(a -> vo.setDevice(a.getDevice()));
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getService())).forEach(a -> vo.setService(a.getService()));
+            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getOs())).forEach(a -> vo.setOs(a.getOs()));
             if (bo.getGeoIp() != null) {
                 String countryName = null;
                 if (StringUtils.isNotBlank(bo.getGeoIp().getCountryName())) {
@@ -357,7 +360,8 @@ public class HostService {
                     vo.setDegree(bo.getGeoIp().getLocation().getLon() + "," + bo.getGeoIp().getLocation().getLat());
                 }
             }
-            vo.setVersion(vo.getNameVersion() != null ? Strings.join(vo.getNameVersion(), ",") : "");
+            vo.setVersion(vo.getNameVersion() != null ? Strings.join(vo.getNameVersion(), ",\n") : "");
+            vo.setTimestamp(DateUtil.format(bo.getTimestamp(), DateUtil.YYYY_MM_DD_HH_MM_SS));
             vos.add(vo);
 
         }
