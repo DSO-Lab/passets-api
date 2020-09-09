@@ -8,7 +8,7 @@ WORKDIR /
 
 RUN mvn package -DskipTests=true
 
-FROM szgx/java:8u111_debian
+FROM szgx/serverjre:8u261
 
 LABEL maintainer="wimas" version="1.0.0"
 
