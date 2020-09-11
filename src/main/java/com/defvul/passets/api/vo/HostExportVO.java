@@ -1,6 +1,8 @@
 package com.defvul.passets.api.vo;
 
 import com.github.crab2died.annotation.ExcelField;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -34,7 +36,7 @@ public class HostExportVO {
     private String device;
 
     @ExcelField(title = "证书信息", order = 8)
-    private Object certs;
+    private String certs;
 
     @ExcelField(title = "地理位置", order = 9)
     private String position;
