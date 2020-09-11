@@ -3,9 +3,13 @@ package com.defvul.passets.api.bo.res;
 import com.defvul.passets.api.vo.ApplicationVO;
 import com.defvul.passets.api.vo.GeoIpVO;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+import springfox.documentation.spring.web.json.Json;
 
 import java.util.Date;
 import java.util.List;
@@ -26,7 +30,7 @@ public class HostExportBO {
     private String type;
 
     @ApiModelProperty(value = "证书信息")
-    private Object certs;
+    private List<Object> certs;
 
     @SerializedName("geoip")
     @JsonProperty("geoip")
@@ -43,4 +47,5 @@ public class HostExportBO {
 
     @ApiModelProperty(value = "来源")
     private String tag;
+
 }

@@ -334,7 +334,6 @@ public class SiteService {
                 rows.add(bo);
             }
         }
-
         page.setData(rows);
 
         return page;
@@ -368,14 +367,14 @@ public class SiteService {
         // 站点聚合
         TermsAggregationBuilder urlsAgg = AggregationBuilders.terms(termName).field("site.keyword").size(EsSearchService.SIZE);
         TopHitsAggregationBuilder urlsTop = AggregationBuilders.topHits(urlTopHits).sort("@timestamp", SortOrder.DESC)
-                .fetchSource(new String[]{"geoip", "inner", "@timestamp", "certs", "tag", "port", "ip", "header", "code"}, null).size(1);
+                .fetchSource(new String[]{"geoip", "inner", "@timestamp", "tag", "port", "ip", "header", "code"}, null).size(1);
         urlsAgg.subAggregation(urlsTop);
 
         // 末次更新时间
         MaxAggregationBuilder maxAgg = AggregationBuilders.max("timestamp_order").field("@timestamp");
         urlsAgg.subAggregation(maxAgg);
         // 模板聚合
-        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(pathTermName).field("url_tpl.keyword").size(500);
+        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(pathTermName).field("url_tpl.keyword").size(300);
         TopHitsAggregationBuilder urlTplTop = AggregationBuilders.topHits(urlTplTopHits).size(1);
         urlsChildAgg.subAggregation(urlTplTop);
         urlsAgg.subAggregation(urlsChildAgg);
@@ -403,6 +402,7 @@ public class SiteService {
             for (Terms.Bucket urlTplBucket : urlTplTerms.getBuckets()) {
                 paths.add(urlTplBucket.getKeyAsString());
             }
+            bo.setPaths(paths);
 
             Set<ApplicationVO> apps = new HashSet<>();
             Terms appsTerms = urlBucket.getAggregations().get(appsName);
@@ -412,7 +412,6 @@ public class SiteService {
                     apps.addAll(app.getApps());
                 }
             }
-            bo.setPaths(paths);
             bo.setApps(new ArrayList<>(apps));
 
             Max time = urlBucket.getAggregations().get("timestamp_order");
@@ -439,7 +438,6 @@ public class SiteService {
                 }
             }
             bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getDevice())).forEach(a -> vo.setDevice(a.getDevice()));
-            bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getService())).forEach(a -> vo.setService(a.getService()));
             bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getOs())).forEach(a -> vo.setOs(a.getOs()));
             if (bo.getGeoIp() != null) {
                 String countryName = null;

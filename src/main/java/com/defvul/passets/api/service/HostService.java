@@ -11,6 +11,7 @@ import com.defvul.passets.api.vo.HostExportVO;
 import com.defvul.passets.api.vo.Page;
 import com.github.crab2died.ExcelUtils;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import joptsimple.internal.Strings;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -32,6 +33,7 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
@@ -293,7 +295,6 @@ public class HostService {
         sourceBuilder.aggregation(ipsAgg);
         System.out.println("sourceBuilder = " + sourceBuilder);
 
-        long star = System.currentTimeMillis();
         SearchResponse searchResponse = esSearchService.search(sourceBuilder);
         if (searchResponse == null || searchResponse.getAggregations() == null) {
             return Collections.emptyList();
@@ -323,9 +324,6 @@ public class HostService {
                 }
             }
         }
-        long end = System.currentTimeMillis();
-        long oo = (end - star);
-        System.out.println("查询资产花费： " + oo + "毫秒");
         return bos;
     }
 
@@ -333,7 +331,7 @@ public class HostService {
         List<HostExportVO> vos = new ArrayList<>();
         for (HostExportBO bo : bos) {
             HostExportVO vo = new HostExportVO();
-            BeanUtils.copyProperties(bo, vo, "inner", "timestamp");
+            BeanUtils.copyProperties(bo, vo, "inner", "timestamp", "certs");
             vo.setInner(bo.isInner() ? "内网" : "外网");
             for (ApplicationVO app : bo.getApps()) {
                 if (StringUtils.isNotBlank(app.getName())) {
@@ -362,6 +360,9 @@ public class HostService {
             }
             vo.setVersion(vo.getNameVersion() != null ? Strings.join(vo.getNameVersion(), ",\n") : "");
             vo.setTimestamp(DateUtil.format(bo.getTimestamp(), DateUtil.YYYY_MM_DD_HH_MM_SS));
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            boolean b = CollectionUtils.isEmpty(bo.getCerts());
+            vo.setCerts(!b ? StringUtils.strip(gson.toJson(bo.getCerts()), "[]") : "");
             vos.add(vo);
 
         }

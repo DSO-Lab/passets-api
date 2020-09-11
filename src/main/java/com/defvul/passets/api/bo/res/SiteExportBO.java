@@ -3,6 +3,8 @@ package com.defvul.passets.api.bo.res;
 import com.defvul.passets.api.vo.ApplicationVO;
 import com.defvul.passets.api.vo.GeoIpVO;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -28,9 +30,6 @@ public class SiteExportBO {
 
     @ApiModelProperty(value = "类型")
     private String type;
-
-    @ApiModelProperty(value = "证书信息")
-    private String certs;
 
     @SerializedName("geoip")
     @JsonProperty("geoip")
