@@ -204,10 +204,12 @@ public class EsSearchService {
 
         // IP
         if (StringUtils.isNotBlank(form.getIp())) {
-            if (IPAddressUtil.isIPv4LiteralAddress(form.getIp())) {
+            boolean ipv6 = IPAddressUtil.isIPv6LiteralAddress(form.getIp());
+            boolean ipv4 = IPAddressUtil.isIPv6LiteralAddress(form.getIp());
+            if (ipv4 || ipv6) {
                 boolQueryBuilder.filter(QueryBuilders.termQuery("ip", form.getIp()));
             } else {
-                boolQueryBuilder.filter(QueryBuilders.prefixQuery("ip", form.getIp()));
+                boolQueryBuilder.filter(QueryBuilders.prefixQuery("ip_str", form.getIp()));
             }
         }
 
@@ -347,4 +349,6 @@ public class EsSearchService {
         sourceBuilder.timeout(new TimeValue(60, TimeUnit.SECONDS));
         return sourceBuilder;
     }
+
+
 }
