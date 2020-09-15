@@ -10,6 +10,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.HttpAsyncResponseConsumerFactory;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.unit.TimeValue;
@@ -55,6 +56,17 @@ public class EsSearchService {
     private String index;
 
     public static final int SIZE = 2147483647;
+
+    private static final RequestOptions COMMON_OPTIONS;
+
+    static {
+        RequestOptions.Builder builder = RequestOptions.DEFAULT.toBuilder();
+
+        builder.setHttpAsyncResponseConsumerFactory(
+                new HttpAsyncResponseConsumerFactory
+                        .HeapBufferedResponseConsumerFactory(200 * 1024 * 1024));
+        COMMON_OPTIONS = builder.build();
+    }
 
     @PostConstruct
     public void init() {
@@ -324,7 +336,7 @@ public class EsSearchService {
 
     private SearchResponse search(SearchRequest request) {
         try {
-            return client.search(request, RequestOptions.DEFAULT);
+            return client.search(request, COMMON_OPTIONS);
         } catch (IOException e) {
             log.error(ExceptionUtils.getStackTrace(e));
         }
