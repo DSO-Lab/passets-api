@@ -270,7 +270,7 @@ public class SiteService {
         urlsChildAgg.subAggregation(statsAggregationBuilder);
         // 源数据
         TopHitsAggregationBuilder topHitsAgg = AggregationBuilders.topHits(topHits)
-                .fetchSource(new String[]{"path","title", "header", "body", "url_tpl"}, null).sort("@timestamp", SortOrder.DESC).size(1);
+                .fetchSource(new String[]{"path", "title", "header", "body", "url_tpl"}, null).sort("@timestamp", SortOrder.DESC).size(1);
         urlsChildAgg.subAggregation(topHitsAgg);
         sourceBuilder.aggregation(urlsChildAgg);
 
@@ -343,7 +343,18 @@ public class SiteService {
         response.setContentType("application/octet-stream");
         response.setHeader("Content-Disposition", "attachment;filename=" + "url.xlsx");
         response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
-        List<SiteExportVO> vos = urlBoToVo(getUrlBo(form));
+        List<String> urls = getUrl();
+        int index = 500;
+        int count = urls.size();
+        List<SiteExportVO> vos = new ArrayList<>();
+        if (urls.size() > 0) {
+            for (int i = 0; i < urls.size(); i += 500) {
+                if (i + 500 > count) {
+                    index = count - i;
+                }
+                vos.addAll(urlBoToVo(getUrlBo(form, urls.subList(i, i + index))));
+            }
+        }
         try {
             ExcelUtils.getInstance().exportObjects2Excel(vos, SiteExportVO.class, true,
                     "URL资产", true, response.getOutputStream());
@@ -352,7 +363,7 @@ public class SiteService {
         }
     }
 
-    private List<SiteExportBO> getUrlBo(QueryBaseForm form) {
+    private List<SiteExportBO> getUrlBo(QueryBaseForm form, List<String> urls) {
         String termName = "site_aggs";
         String urlTopHits = "site_top_hits";
         String urlTplTopHits = "site_url_tpl_hits";
@@ -362,7 +373,8 @@ public class SiteService {
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.size(0);
-        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form));
+        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form))
+                .query(QueryBuilders.boolQuery().filter(QueryBuilders.termsQuery("site.keyword", urls)));
 
         // 站点聚合
         TermsAggregationBuilder urlsAgg = AggregationBuilders.terms(termName).field("site.keyword").size(EsSearchService.SIZE);
@@ -374,7 +386,7 @@ public class SiteService {
         MaxAggregationBuilder maxAgg = AggregationBuilders.max("timestamp_order").field("@timestamp");
         urlsAgg.subAggregation(maxAgg);
         // 模板聚合
-        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(pathTermName).field("url_tpl.keyword").size(300);
+        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(pathTermName).field("url_tpl.keyword").size(150);
         TopHitsAggregationBuilder urlTplTop = AggregationBuilders.topHits(urlTplTopHits).size(1);
         urlsChildAgg.subAggregation(urlTplTop);
         urlsAgg.subAggregation(urlsChildAgg);
@@ -403,7 +415,7 @@ public class SiteService {
                 paths.add(urlTplBucket.getKeyAsString());
             }
             bo.setPaths(paths);
-
+//            System.out.println("URL：" + url + "字符长度=" + paths.size() + "---数量：" + paths.toString().length());
             Set<ApplicationVO> apps = new HashSet<>();
             Terms appsTerms = urlBucket.getAggregations().get(appsName);
             for (Terms.Bucket appsBucket : appsTerms.getBuckets()) {
@@ -461,6 +473,26 @@ public class SiteService {
 
         }
         return vos;
+    }
+
+    private List<String> getUrl() {
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.size(0);
+
+        TermsAggregationBuilder urlAgg = AggregationBuilders.terms("url_aggs").field("site.keyword").size(EsSearchService.SIZE);
+
+        sourceBuilder.aggregation(urlAgg);
+        System.out.println("sourceBuilder = " + sourceBuilder);
+
+        SearchResponse response = esSearchService.search(sourceBuilder);
+        List<String> urls = new ArrayList<>();
+        if (response != null || response.getAggregations() != null) {
+            Terms terms = response.getAggregations().get("url_aggs");
+            for (Terms.Bucket bucket : terms.getBuckets()) {
+                urls.add(bucket.getKeyAsString());
+            }
+        }
+        return urls;
     }
 
 //    public static void main(String[] args) {

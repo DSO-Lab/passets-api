@@ -57,16 +57,16 @@ public class EsSearchService {
 
     public static final int SIZE = 2147483647;
 
-    private static final RequestOptions COMMON_OPTIONS;
-
-    static {
-        RequestOptions.Builder builder = RequestOptions.DEFAULT.toBuilder();
-
-        builder.setHttpAsyncResponseConsumerFactory(
-                new HttpAsyncResponseConsumerFactory
-                        .HeapBufferedResponseConsumerFactory(200 * 1024 * 1024));
-        COMMON_OPTIONS = builder.build();
-    }
+//    private static final RequestOptions COMMON_OPTIONS;
+//
+//    static {
+//        RequestOptions.Builder builder = RequestOptions.DEFAULT.toBuilder();
+//
+//        builder.setHttpAsyncResponseConsumerFactory(
+//                new HttpAsyncResponseConsumerFactory
+//                        .HeapBufferedResponseConsumerFactory(200 * 1024 * 1024));
+//        COMMON_OPTIONS = builder.build();
+//    }
 
     @PostConstruct
     public void init() {
@@ -336,7 +336,7 @@ public class EsSearchService {
 
     private SearchResponse search(SearchRequest request) {
         try {
-            return client.search(request, COMMON_OPTIONS);
+            return client.search(request, RequestOptions.DEFAULT);
         } catch (IOException e) {
             log.error(ExceptionUtils.getStackTrace(e));
         }
