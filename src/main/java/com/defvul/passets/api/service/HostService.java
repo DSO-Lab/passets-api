@@ -151,12 +151,9 @@ public class HostService {
         }
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
         sourceBuilder.fetchSource(INCLUDE_SOURCE, null).collapse(new CollapseBuilder("ip_str.keyword"));
-        TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(termName).field("ip").size(EsSearchService.SIZE);
-        ipsAgg.order(BucketOrder.aggregation("timestamp_order", false));
+        CardinalityAggregationBuilder ipsCountAgg = AggregationBuilders.cardinality(termName).precisionThreshold(40000).field("ip_str.keyword");
 
-        MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");
-        ipsAgg.subAggregation(maxAggregationBuilder);
-        sourceBuilder.aggregation(ipsAgg);
+        sourceBuilder.aggregation(ipsCountAgg);
         log.info("host_page_query: {}", sourceBuilder);
         SearchResponse response = esSearchService.search(sourceBuilder);
         if (response == null) {
@@ -164,8 +161,8 @@ public class HostService {
         }
         SearchHits searchHits = response.getHits();
         if (response.getAggregations() != null && page != null) {
-            Terms terms = response.getAggregations().get(termName);
-            page.setTotal(terms.getBuckets().size());
+            Cardinality cardinality = response.getAggregations().get(termName);
+            page.setTotal((int) cardinality.getValue());
         }
 
         List<HostBO> result = new ArrayList<>();
@@ -279,18 +276,18 @@ public class HostService {
         sourceBuilder.size(0);
         sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form));
 
-        TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(ipAggs).field("ip_str.keyword").size(EsSearchService.SIZE);
+        TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(ipAggs).field("host.keyword").size(EsSearchService.SIZE);
 
-        TermsAggregationBuilder portAgg = AggregationBuilders.terms(portAggs).field("port").size(EsSearchService.SIZE);
-        ipsAgg.subAggregation(portAgg);
+//        TermsAggregationBuilder portAgg = AggregationBuilders.terms(portAggs).field("port").size(EsSearchService.SIZE);
+//        ipsAgg.subAggregation(portAgg);
 
         TopHitsAggregationBuilder ipPortTopHitsAgg = AggregationBuilders.topHits(ipPortHits).size(1)
-                .sort("@timestamp", SortOrder.DESC).fetchSource(new String[]{"geoip", "inner", "@timestamp", "certs", "tag"}, null);
-        portAgg.subAggregation(ipPortTopHitsAgg);
+                .sort("@timestamp", SortOrder.DESC).fetchSource(new String[]{"geoip", "inner", "@timestamp", "certs", "tag", "ip", "port"}, null);
+        ipsAgg.subAggregation(ipPortTopHitsAgg);
 
         TermsAggregationBuilder appsTermsAggregationBuilder = AggregationBuilders.terms(appsAggs).field("apps.name.keyword").size(200);
         appsTermsAggregationBuilder.subAggregation(AggregationBuilders.topHits(appsTopHits).size(1).sort("@timestamp", SortOrder.DESC).fetchSource("apps", null));
-        portAgg.subAggregation(appsTermsAggregationBuilder);
+        ipsAgg.subAggregation(appsTermsAggregationBuilder);
 
         sourceBuilder.aggregation(ipsAgg);
         System.out.println("sourceBuilder = " + sourceBuilder);
@@ -299,31 +296,24 @@ public class HostService {
         if (searchResponse == null || searchResponse.getAggregations() == null) {
             return Collections.emptyList();
         }
+
         Terms terms = searchResponse.getAggregations().get(ipAggs);
         List<HostExportBO> bos = new ArrayList<>();
         for (Terms.Bucket bucket : terms.getBuckets()) {
-            String ip = bucket.getKeyAsString();
-            Terms portTerms = bucket.getAggregations().get(portAggs);
-            if (!portTerms.getBuckets().isEmpty()) {
-                for (Terms.Bucket portBucket : portTerms.getBuckets()) {
-                    String port = portBucket.getKeyAsString();
-
-                    HostExportBO bo = esSearchService.getHitsByBucket(portBucket, ipPortHits, HostExportBO.class);
-                    bo.setIp(ip);
-                    bo.setPort(port);
-                    Set<ApplicationVO> apps = new HashSet<>();
-                    Terms appsTerms = portBucket.getAggregations().get(appsAggs);
-                    for (Terms.Bucket appsBucket : appsTerms.getBuckets()) {
-                        BaseInfoBO app = esSearchService.getHitsByBucket(appsBucket, appsTopHits, BaseInfoBO.class);
-                        if (app != null && !app.getApps().isEmpty()) {
-                            apps.addAll(app.getApps());
-                        }
-                    }
-                    bo.setApps(new ArrayList<>(apps));
-                    bos.add(bo);
+            HostExportBO bo = esSearchService.getHitsByBucket(bucket, ipPortHits, HostExportBO.class);
+            Set<ApplicationVO> apps = new HashSet<>();
+            Terms appsTerms = bucket.getAggregations().get(appsAggs);
+            for (Terms.Bucket appsBucket : appsTerms.getBuckets()) {
+                BaseInfoBO app = esSearchService.getHitsByBucket(appsBucket, appsTopHits, BaseInfoBO.class);
+                if (app != null && !app.getApps().isEmpty()) {
+                    apps.addAll(app.getApps());
                 }
             }
+            bo.setApps(new ArrayList<>(apps));
+            bos.add(bo);
         }
+
+
         return bos;
     }
 
@@ -362,7 +352,7 @@ public class HostService {
             vo.setTimestamp(DateUtil.format(bo.getTimestamp(), DateUtil.YYYY_MM_DD_HH_MM_SS));
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             boolean b = CollectionUtils.isEmpty(bo.getCerts());
-            vo.setCerts(!b ? StringUtils.strip(gson.toJson(bo.getCerts()), "[]") : "");
+            vo.setCerts(!b ? StringUtils.strip(gson.toJson(bo.getCerts()), "[]").trim() : "");
             vos.add(vo);
 
         }

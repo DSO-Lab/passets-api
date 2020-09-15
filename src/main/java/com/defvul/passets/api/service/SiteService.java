@@ -264,13 +264,13 @@ public class SiteService {
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
 
         // 用url_tpl进行聚合计算
-        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(pathTermName).field("url_tpl.keyword").size(EsSearchService.SIZE);
+        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(pathTermName).field("url_tpl.keyword").size(1000);
         // 时间统计
         StatsAggregationBuilder statsAggregationBuilder = AggregationBuilders.stats(stats).field("@timestamp");
         urlsChildAgg.subAggregation(statsAggregationBuilder);
         // 源数据
         TopHitsAggregationBuilder topHitsAgg = AggregationBuilders.topHits(topHits)
-                .fetchSource(INCLUDE_SOURCE_INFO, null).sort("@timestamp", SortOrder.DESC).size(1);
+                .fetchSource(new String[]{"path","title", "header", "body", "url_tpl"}, null).sort("@timestamp", SortOrder.DESC).size(1);
         urlsChildAgg.subAggregation(topHitsAgg);
         sourceBuilder.aggregation(urlsChildAgg);
 

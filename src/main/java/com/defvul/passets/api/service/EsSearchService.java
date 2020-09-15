@@ -25,6 +25,7 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import sun.net.util.IPAddressUtil;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -36,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
 
 /**
  * 说明:
@@ -65,7 +67,7 @@ public class EsSearchService {
             Thread.sleep(20000L);
             client.cluster().putSettings(request, RequestOptions.DEFAULT);
         } catch (Exception e) {
-//            init();
+            init();
             log.error("执行es设置报错: {}", ExceptionUtils.getStackTrace(e));
         }
     }
@@ -122,11 +124,11 @@ public class EsSearchService {
         TermsAggregationBuilder statsCountAgg = AggregationBuilders.terms(statsCount).size(SIZE);
 
         if (isHost) {
-//            if ("pros".equals(termName)) {
-//                statsCountAgg.field("host.keyword");
-//            } else {
-            statsCountAgg.field("ip");
-//            }
+            if ("pros".equals(termName)) {
+                statsCountAgg.field("host.keyword");
+            } else {
+                statsCountAgg.field("ip_str.keyword");
+            }
             sourceBuilder.query(getBoolQueryWithQueryForm(form));
         } else {
             statsCountAgg.field("site.keyword");
@@ -202,7 +204,11 @@ public class EsSearchService {
 
         // IP
         if (StringUtils.isNotBlank(form.getIp())) {
-            boolQueryBuilder.filter(QueryBuilders.termQuery("ip", form.getIp()));
+            if (IPAddressUtil.isIPv4LiteralAddress(form.getIp())) {
+                boolQueryBuilder.filter(QueryBuilders.termQuery("ip", form.getIp()));
+            } else {
+                boolQueryBuilder.filter(QueryBuilders.prefixQuery("ip", form.getIp()));
+            }
         }
 
         // 端口
