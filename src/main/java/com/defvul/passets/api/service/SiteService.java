@@ -343,7 +343,7 @@ public class SiteService {
         response.setContentType("application/octet-stream");
         response.setHeader("Content-Disposition", "attachment;filename=" + "url.xlsx");
         response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
-        List<String> urls = getUrl();
+        List<String> urls = getUrl(form);
         int index = 500;
         int count = urls.size();
         List<SiteExportVO> vos = new ArrayList<>();
@@ -475,9 +475,10 @@ public class SiteService {
         return vos;
     }
 
-    private List<String> getUrl() {
+    private List<String> getUrl(QueryBaseForm form) {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.size(0);
+        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form));
 
         TermsAggregationBuilder urlAgg = AggregationBuilders.terms("url_aggs").field("site.keyword").size(EsSearchService.SIZE);
 
