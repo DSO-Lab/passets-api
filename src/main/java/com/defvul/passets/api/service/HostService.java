@@ -9,6 +9,7 @@ import com.defvul.passets.api.util.DateUtil;
 import com.defvul.passets.api.vo.ApplicationVO;
 import com.defvul.passets.api.vo.HostExportVO;
 import com.defvul.passets.api.vo.Page;
+import com.defvul.passets.api.vo.SiteExportVO;
 import com.github.crab2died.ExcelUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -254,7 +255,18 @@ public class HostService {
         response.setContentType("application/octet-stream");
         response.setHeader("Content-Disposition", "attachment;filename=" + "ip.xlsx");
         response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
-        List<HostExportVO> vos = ipBoToVo(getIpBo(form));
+        List<String> ips = getIp(form);
+        int index = 1000;
+        int count = ips.size();
+        List<HostExportVO> vos = new ArrayList<>();
+        if (ips.size() > 0) {
+            for (int i = 0; i < ips.size(); i += 1000) {
+                if (i + 1000 > count) {
+                    index = count - i;
+                }
+                vos.addAll(ipBoToVo(getIpBo(form, ips.subList(i, i + index))));
+            }
+        }
         try {
             ExcelUtils.getInstance().exportObjects2Excel(vos, HostExportVO.class, true,
                     "IP资产", true, response.getOutputStream());
@@ -263,16 +275,16 @@ public class HostService {
         }
     }
 
-    public List<HostExportBO> getIpBo(QueryBaseForm form) {
+    public List<HostExportBO> getIpBo(QueryBaseForm form,List<String> ips) {
         String ipAggs = "ip_aggs";
-        String portAggs = "port_aggs";
+//        String portAggs = "port_aggs";
         String ipPortHits = "ip_port_hits";
         String appsAggs = "apps_aggs";
         String appsTopHits = "apps_top_hits";
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.size(0);
-        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form));
+        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form)).query(QueryBuilders.boolQuery().filter(QueryBuilders.termsQuery("ip_str.keyword", ips)));
 
         TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(ipAggs).field("host.keyword").size(EsSearchService.SIZE);
 
@@ -357,7 +369,7 @@ public class HostService {
         return vos;
     }
 
-    private List<String> getIp() {
+    private List<String> getIp(QueryBaseForm form) {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.size(0);
 

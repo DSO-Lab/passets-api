@@ -1,20 +1,20 @@
 package com.defvul.passets.api.service;
 
+import com.alibaba.excel.EasyExcel;
 import com.defvul.passets.api.bo.req.QueryBaseForm;
 import com.defvul.passets.api.bo.req.QueryInfoForm;
 import com.defvul.passets.api.bo.req.QueryPageForm;
 import com.defvul.passets.api.bo.res.*;
 import com.defvul.passets.api.util.DateUtil;
-import com.defvul.passets.api.vo.ApplicationVO;
-import com.defvul.passets.api.vo.HostExportVO;
-import com.defvul.passets.api.vo.Page;
-import com.defvul.passets.api.vo.SiteExportVO;
+import com.defvul.passets.api.util.ExcelUtil;
+import com.defvul.passets.api.vo.*;
 import com.github.crab2died.ExcelUtils;
 import com.google.gson.Gson;
 import joptsimple.internal.Strings;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.license.LicenseStatus;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -31,6 +31,7 @@ import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletResponse;
@@ -95,6 +96,9 @@ public class SiteService {
             "ip",
             "tag",
     };
+
+    @Value("${site-query-number}")
+    private Integer siteNumber;
 
     /**
      * 分页查询，站点资产
@@ -344,20 +348,32 @@ public class SiteService {
         response.setHeader("Content-Disposition", "attachment;filename=" + "url.xlsx");
         response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
         List<String> urls = getUrl(form);
-        int index = 500;
+        int index = siteNumber;
         int count = urls.size();
         List<SiteExportVO> vos = new ArrayList<>();
         if (urls.size() > 0) {
-            for (int i = 0; i < urls.size(); i += 500) {
-                if (i + 500 > count) {
+            for (int i = 0; i < urls.size(); i += siteNumber) {
+                if (i + siteNumber > count) {
                     index = count - i;
                 }
                 vos.addAll(urlBoToVo(getUrlBo(form, urls.subList(i, i + index))));
             }
         }
+        List<SiteMergeStartegyExportVO> voList = new ArrayList<>();
+        vos.forEach(v -> {
+            SiteMergeStartegyExportVO vo = new SiteMergeStartegyExportVO();
+            BeanUtils.copyProperties(v, vo);
+            voList.add(vo);
+        });
+
+        // 合并策略
+        Map<Integer, List<RowRange>> map = ExcelUtil.addMergeStrategy(voList);
         try {
-            ExcelUtils.getInstance().exportObjects2Excel(vos, SiteExportVO.class, true,
-                    "URL资产", true, response.getOutputStream());
+            EasyExcel.write(response.getOutputStream(), SiteMergeStartegyExportVO.class)
+                    // 注册合并策略
+                    .registerWriteHandler(new CustomMergeStrategy(map))
+                    .sheet("URL资产").doWrite(voList);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -379,15 +395,18 @@ public class SiteService {
         // 站点聚合
         TermsAggregationBuilder urlsAgg = AggregationBuilders.terms(termName).field("site.keyword").size(EsSearchService.SIZE);
         TopHitsAggregationBuilder urlsTop = AggregationBuilders.topHits(urlTopHits).sort("@timestamp", SortOrder.DESC)
-                .fetchSource(new String[]{"geoip", "inner", "@timestamp", "tag", "port", "ip", "header", "code"}, null).size(1);
+                .fetchSource(new String[]{"geoip", "inner", "@timestamp", "tag", "port", "ip"}, null).size(1);
         urlsAgg.subAggregation(urlsTop);
+
+        CardinalityAggregationBuilder cardinality = AggregationBuilders.cardinality("site_count").precisionThreshold(40000).field("url_tpl.keyword");
+        urlsAgg.subAggregation(cardinality);
 
         // 末次更新时间
         MaxAggregationBuilder maxAgg = AggregationBuilders.max("timestamp_order").field("@timestamp");
         urlsAgg.subAggregation(maxAgg);
         // 模板聚合
-        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(pathTermName).field("url_tpl.keyword").size(150);
-        TopHitsAggregationBuilder urlTplTop = AggregationBuilders.topHits(urlTplTopHits).size(1);
+        TermsAggregationBuilder urlsChildAgg = AggregationBuilders.terms(pathTermName).field("url_tpl.keyword").size(EsSearchService.SIZE);
+        TopHitsAggregationBuilder urlTplTop = AggregationBuilders.topHits(urlTplTopHits).size(1).fetchSource(new String[]{"header", "code"}, null);
         urlsChildAgg.subAggregation(urlTplTop);
         urlsAgg.subAggregation(urlsChildAgg);
 
@@ -406,16 +425,12 @@ public class SiteService {
         Terms urlTerms = response.getAggregations().get(termName);
         List<SiteExportBO> bos = new ArrayList<>();
         for (Terms.Bucket urlBucket : urlTerms.getBuckets()) {
+            Cardinality c = urlBucket.getAggregations().get("site_count");
+
             String url = urlBucket.getKeyAsString();
+            System.out.println("当前URL：" + url + "访问路劲数量= " + c.getValue());
             SiteExportBO bo = esSearchService.getHitsByBucket(urlBucket, urlTopHits, SiteExportBO.class);
             bo.setSite(url);
-            Set<String> paths = new HashSet<>();
-            Terms urlTplTerms = urlBucket.getAggregations().get(pathTermName);
-            for (Terms.Bucket urlTplBucket : urlTplTerms.getBuckets()) {
-                paths.add(urlTplBucket.getKeyAsString());
-            }
-            bo.setPaths(paths);
-//            System.out.println("URL：" + url + "字符长度=" + paths.size() + "---数量：" + paths.toString().length());
             Set<ApplicationVO> apps = new HashSet<>();
             Terms appsTerms = urlBucket.getAggregations().get(appsName);
             for (Terms.Bucket appsBucket : appsTerms.getBuckets()) {
@@ -429,7 +444,16 @@ public class SiteService {
             Max time = urlBucket.getAggregations().get("timestamp_order");
             bo.setTimestamp(esSearchService.parseDate(time.getValueAsString()));
 
-            bos.add(bo);
+            Terms urlTplTerms = urlBucket.getAggregations().get(pathTermName);
+            for (Terms.Bucket urlTplBucket : urlTplTerms.getBuckets()) {
+                BaseInfoBO header = esSearchService.getHitsByBucket(urlTplBucket, urlTplTopHits, BaseInfoBO.class);
+                SiteExportBO site = new SiteExportBO();
+                BeanUtils.copyProperties(bo, site);
+                site.setPath(urlTplBucket.getKeyAsString());
+                site.setHeader(header.getHeader());
+                site.setCode(header.getCode());
+                bos.add(site);
+            }
         }
 
         System.out.println("sourceBuilder = " + sourceBuilder);
@@ -466,7 +490,6 @@ public class SiteService {
                     vo.setDegree(bo.getGeoIp().getLocation().getLon() + "," + bo.getGeoIp().getLocation().getLat());
                 }
             }
-            vo.setPath(Strings.join(vo.getPaths(), ",\n"));
             vo.setVersion(vo.getNameVersion() != null ? Strings.join(vo.getNameVersion(), ",\n") : "");
             vo.setTimestamp(DateUtil.format(bo.getTimestamp(), DateUtil.YYYY_MM_DD_HH_MM_SS));
             vos.add(vo);

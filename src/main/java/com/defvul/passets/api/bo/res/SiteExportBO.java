@@ -51,6 +51,8 @@ public class SiteExportBO {
 
     private String code;
 
+    private String path;
+
     private Set<String> headers;
 
     private Set<String> codes;

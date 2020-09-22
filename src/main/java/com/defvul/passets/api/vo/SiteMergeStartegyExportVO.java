@@ -1,76 +1,66 @@
 package com.defvul.passets.api.vo;
 
-import com.github.crab2died.annotation.ExcelField;
-
+import com.alibaba.excel.annotation.ExcelProperty;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Data
-public class SiteExportVO {
+public class SiteMergeStartegyExportVO {
 
     @ApiModelProperty(value = "网站地址")
-    @ExcelField(title = "网站地址", order = 1)
+    @ExcelProperty(value = "网站地址", index = 0)
     private String site;
 
     @ApiModelProperty(value = "IP")
-    @ExcelField(title = "IP地址", order = 2)
+    @ExcelProperty(value = "IP地址", index = 1)
     private String ip;
 
     @ApiModelProperty(value = "端口")
-    @ExcelField(title = "端口", order = 3)
+    @ExcelProperty(value = "端口", index = 2)
     private String port;
 
     @ApiModelProperty(value = "操作系统")
-    @ExcelField(title = "操作系统", order = 4)
+    @ExcelProperty(value = "操作系统", index = 3)
     private String os;
 
     @ApiModelProperty(value = "资产类类别")
-    @ExcelField(title = "资产类类别", order = 5)
+    @ExcelProperty(value = "资产类类别", index = 4)
     private String assetsType;
 
     @ApiModelProperty(value = "资产服务类型")
-    @ExcelField(title = "资产服务类型", order = 6)
+    @ExcelProperty(value = "资产服务类型", index = 5)
     private String version;
 
     @ApiModelProperty(value = "资产类型设备")
-    @ExcelField(title = "资产类型设备", order = 7)
+    @ExcelProperty(value = "资产类型设备", index = 6)
     private String device;
 
     @ApiModelProperty(value = "地理位置")
-    @ExcelField(title = "地理位置", order = 8)
+    @ExcelProperty(value = "地理位置", index = 7)
     private String position;
 
     @ApiModelProperty(value = "经纬度")
-    @ExcelField(title = "经纬度", order = 9)
+    @ExcelProperty(value = "经纬度", index = 8)
     private String degree;
 
     @ApiModelProperty(value = "是否内网")
-    @ExcelField(title = "内外网", order = 10)
+    @ExcelProperty(value = "内外网", index = 9)
     private String inner;
 
     @ApiModelProperty(value = "最后更新时间")
-    @ExcelField(title = "最后更新时间", order = 11)
+    @ExcelProperty(value = "最后更新时间", index = 10)
     private String timestamp;
 
     @ApiModelProperty(value = "来源")
-    @ExcelField(title = "来源", order = 12)
+    @ExcelProperty(value = "来源", index = 11)
     private String tag;
 
-    @ExcelField(title = "访问路径", order = 13)
+    @ExcelProperty(value= "访问路径", index = 12)
     private String path;
 
-    @ExcelField(title = "请求头", order = 14)
+    @ExcelProperty(value = "请求头", index = 13)
     private String header;
 
-    @ExcelField(title = "状态码", order = 15)
+    @ExcelProperty(value = "状态码", index = 14)
     private String code;
-
-    private Set<String> paths;
-
-    private Set<String> nameVersion = new HashSet<>();
-
 }
-

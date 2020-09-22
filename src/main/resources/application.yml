@@ -20,3 +20,4 @@ elasticsearch:
   index: ${ELASTICSEARCH_INDEX:logstash-passets}
 secret: ${SECRET:dsolabpassetsapisecret}
 data-save-day: ${DATA_SAVE_DAY:30}
+site-query-number: ${SITE_QUERY_NUMBER:5}
