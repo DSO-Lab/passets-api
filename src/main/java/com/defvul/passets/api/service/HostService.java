@@ -372,6 +372,7 @@ public class HostService {
     private List<String> getIp(QueryBaseForm form) {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.size(0);
+        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form));
 
         TermsAggregationBuilder ipsAgg = AggregationBuilders.terms("ip_aggs").field("ip_str.keyword").size(EsSearchService.SIZE);
 
