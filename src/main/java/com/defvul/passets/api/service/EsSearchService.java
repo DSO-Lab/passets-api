@@ -217,7 +217,7 @@ public class EsSearchService {
         // IP
         if (StringUtils.isNotBlank(form.getIp())) {
             boolean ipv6 = IPAddressUtil.isIPv6LiteralAddress(form.getIp());
-            boolean ipv4 = IPAddressUtil.isIPv6LiteralAddress(form.getIp());
+            boolean ipv4 = IPAddressUtil.isIPv4LiteralAddress(form.getIp());
             if (ipv4 || ipv6) {
                 boolQueryBuilder.filter(QueryBuilders.termQuery("ip", form.getIp()));
             } else {
