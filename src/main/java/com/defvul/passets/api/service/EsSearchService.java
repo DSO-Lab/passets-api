@@ -3,6 +3,7 @@ package com.defvul.passets.api.service;
 import com.defvul.passets.api.bo.req.QueryBaseForm;
 import com.defvul.passets.api.bo.res.TopBO;
 import com.defvul.passets.api.bo.res.TopInfoBO;
+import com.defvul.passets.api.util.IPUtils;
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -217,7 +218,7 @@ public class EsSearchService {
         // IP
         if (StringUtils.isNotBlank(form.getIp())) {
             boolean ipv6 = IPAddressUtil.isIPv6LiteralAddress(form.getIp());
-            boolean ipv4 = IPAddressUtil.isIPv4LiteralAddress(form.getIp());
+            boolean ipv4 = IPUtils.isIp(form.getIp());
             if (ipv4 || ipv6) {
                 boolQueryBuilder.filter(QueryBuilders.termQuery("ip", form.getIp()));
             } else {
