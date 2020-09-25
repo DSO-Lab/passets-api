@@ -389,8 +389,8 @@ public class SiteService {
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.size(0);
-        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form))
-                .query(QueryBuilders.boolQuery().filter(QueryBuilders.termsQuery("site.keyword", urls)));
+        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form)
+                .filter(QueryBuilders.termsQuery("site.keyword", urls)));
 
         // 站点聚合
         TermsAggregationBuilder urlsAgg = AggregationBuilders.terms(termName).field("site.keyword").size(EsSearchService.SIZE);

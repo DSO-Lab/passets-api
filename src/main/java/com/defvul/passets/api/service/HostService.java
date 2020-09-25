@@ -284,7 +284,7 @@ public class HostService {
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.size(0);
-        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form)).query(QueryBuilders.boolQuery().filter(QueryBuilders.termsQuery("ip_str.keyword", ips)));
+        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form).filter(QueryBuilders.termsQuery("ip_str.keyword",ips)));
 
         TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(ipAggs).field("host.keyword").size(EsSearchService.SIZE);
 
