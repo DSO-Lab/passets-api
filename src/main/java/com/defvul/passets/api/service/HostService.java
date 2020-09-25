@@ -21,6 +21,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.BucketOrder;
 import org.elasticsearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.filter.ParsedFilter;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
@@ -150,9 +151,12 @@ public class HostService {
         }
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
         sourceBuilder.fetchSource(INCLUDE_SOURCE, null).collapse(new CollapseBuilder("ip_str.keyword"));
-        CardinalityAggregationBuilder ipsCountAgg = AggregationBuilders.cardinality(termName).precisionThreshold(40000).field("ip_str.keyword");
+        TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(termName).field("ip").size(EsSearchService.SIZE);
+        ipsAgg.order(BucketOrder.aggregation("timestamp_order", false));
 
-        sourceBuilder.aggregation(ipsCountAgg);
+        MaxAggregationBuilder maxAggregationBuilder = AggregationBuilders.max("timestamp_order").field("@timestamp");
+        ipsAgg.subAggregation(maxAggregationBuilder);
+        sourceBuilder.aggregation(ipsAgg);
         log.info("host_page_query: {}", sourceBuilder);
         SearchResponse response = esSearchService.search(sourceBuilder);
         if (response == null) {
@@ -160,8 +164,8 @@ public class HostService {
         }
         SearchHits searchHits = response.getHits();
         if (response.getAggregations() != null && page != null) {
-            Cardinality cardinality = response.getAggregations().get(termName);
-            page.setTotal((int) cardinality.getValue());
+            Terms terms = response.getAggregations().get(termName);
+            page.setTotal(terms.getBuckets().size());
         }
 
         List<HostBO> result = new ArrayList<>();
