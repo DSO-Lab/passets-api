@@ -279,7 +279,7 @@ public class HostService {
         }
     }
 
-    public List<HostExportBO> getIpBo(QueryBaseForm form,List<String> ips) {
+    public List<HostExportBO> getIpBo(QueryBaseForm form, List<String> ips) {
         String ipAggs = "ip_aggs";
 //        String portAggs = "port_aggs";
         String ipPortHits = "ip_port_hits";
@@ -288,7 +288,7 @@ public class HostService {
 
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.size(0);
-        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form).filter(QueryBuilders.termsQuery("ip_str.keyword",ips)));
+        sourceBuilder.query(esSearchService.getBoolQueryWithQueryForm(form).filter(QueryBuilders.termsQuery("ip_str.keyword", ips)));
 
         TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(ipAggs).field("host.keyword").size(EsSearchService.SIZE);
 
@@ -339,8 +339,7 @@ public class HostService {
             vo.setInner(bo.isInner() ? "内网" : "外网");
             for (ApplicationVO app : bo.getApps()) {
                 if (StringUtils.isNotBlank(app.getName())) {
-                    String version = StringUtils.isNotBlank(app.getVersion()) ? app.getVersion() : "未知";
-                    String nameVersion = app.getName() + "(" + version + ")";
+                    String nameVersion = app.getName() + (StringUtils.isNotBlank(app.getVersion()) ? "(" + app.getVersion() + ")" : "");
                     vo.getNameVersion().add(nameVersion);
                 }
             }
@@ -348,16 +347,9 @@ public class HostService {
             bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getService())).forEach(a -> vo.setService(a.getService()));
             bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getOs())).forEach(a -> vo.setOs(a.getOs()));
             if (bo.getGeoIp() != null) {
-                String countryName = null;
-                if (StringUtils.isNotBlank(bo.getGeoIp().getCountryName())) {
-                    countryName = bo.getGeoIp().getCountryName();
-
-                }
-                String city = null;
-                if (StringUtils.isNotBlank(bo.getGeoIp().getCityName())) {
-                    city = bo.getGeoIp().getCityName();
-                }
-                vo.setPosition((countryName == null ? "" : countryName) + (city == null ? "" : city));
+                String countryName = StringUtils.isNotBlank(bo.getGeoIp().getCountryName()) ? bo.getGeoIp().getCountryName() : "";
+                String city = StringUtils.isNotBlank(bo.getGeoIp().getCityName()) ? bo.getGeoIp().getCityName() : "";
+                vo.setPosition(countryName + city);
                 if (bo.getGeoIp().getLocation() != null) {
                     vo.setDegree(bo.getGeoIp().getLocation().getLon() + "," + bo.getGeoIp().getLocation().getLat());
                 }

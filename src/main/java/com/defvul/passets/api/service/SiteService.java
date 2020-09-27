@@ -468,24 +468,16 @@ public class SiteService {
             vo.setInner(bo.isInner() ? "内网" : "外网");
             for (ApplicationVO app : bo.getApps()) {
                 if (StringUtils.isNotBlank(app.getName())) {
-                    String version = StringUtils.isNotBlank(app.getVersion()) ? app.getVersion() : "未知";
-                    String nameVersion = app.getName() + "(" + version + ")";
+                    String nameVersion = app.getName() + (StringUtils.isNotBlank(app.getVersion()) ? "(" + app.getVersion() + ")" : "");
                     vo.getNameVersion().add(nameVersion);
                 }
             }
             bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getDevice())).forEach(a -> vo.setDevice(a.getDevice()));
             bo.getApps().stream().filter(a -> StringUtils.isNotBlank(a.getOs())).forEach(a -> vo.setOs(a.getOs()));
             if (bo.getGeoIp() != null) {
-                String countryName = null;
-                if (StringUtils.isNotBlank(bo.getGeoIp().getCountryName())) {
-                    countryName = bo.getGeoIp().getCountryName();
-
-                }
-                String city = null;
-                if (StringUtils.isNotBlank(bo.getGeoIp().getCityName())) {
-                    city = bo.getGeoIp().getCityName();
-                }
-                vo.setPosition((countryName == null ? "" : countryName) + (city == null ? "" : city));
+                String countryName = StringUtils.isNotBlank(bo.getGeoIp().getCountryName()) ? bo.getGeoIp().getCountryName() : "";
+                String city = StringUtils.isNotBlank(bo.getGeoIp().getCityName()) ? bo.getGeoIp().getCityName() : "";
+                vo.setPosition(countryName + city);
                 if (bo.getGeoIp().getLocation() != null) {
                     vo.setDegree(bo.getGeoIp().getLocation().getLon() + "," + bo.getGeoIp().getLocation().getLat());
                 }
