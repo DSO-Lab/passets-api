@@ -56,6 +56,9 @@ public class EsSearchService {
     @Value("${elasticsearch.index}")
     private String index;
 
+    @Value("${query-tag-client}")
+    private Boolean queryTagClient;
+
     public static final int SIZE = 2147483647;
 
 //    private static final RequestOptions COMMON_OPTIONS;
@@ -214,6 +217,11 @@ public class EsSearchService {
 
         // 处理过的数据
         boolQueryBuilder.filter(QueryBuilders.termQuery("state", 1));
+
+        // 过滤Tag等于Client的
+        if (!queryTagClient) {
+            boolQueryBuilder.mustNot(QueryBuilders.termQuery("tag", "client"));
+        }
 
         // IP
         if (StringUtils.isNotBlank(form.getIp())) {
