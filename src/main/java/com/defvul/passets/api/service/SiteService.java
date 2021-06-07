@@ -177,6 +177,7 @@ public class SiteService {
         }
 
         sourceBuilder.query(boolQueryBuilder);
+        sourceBuilder.sort("apps.name.keyword", SortOrder.DESC);
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
         sourceBuilder.fetchSource(INCLUDE_SOURCE, null)
                 .collapse(new CollapseBuilder("site.keyword"));

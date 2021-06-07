@@ -29,6 +29,7 @@ import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilde
 import org.elasticsearch.search.aggregations.metrics.*;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.collapse.CollapseBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -149,6 +150,7 @@ public class HostService {
         if (notPage) {
             sourceBuilder.size(1);
         }
+        sourceBuilder.sort("apps.name.keyword", SortOrder.DESC);
         sourceBuilder.sort("@timestamp", SortOrder.DESC);
         sourceBuilder.fetchSource(INCLUDE_SOURCE, null).collapse(new CollapseBuilder("ip_str.keyword"));
         TermsAggregationBuilder ipsAgg = AggregationBuilders.terms(termName).field("ip").size(EsSearchService.SIZE);

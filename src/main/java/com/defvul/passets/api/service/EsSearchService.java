@@ -353,7 +353,7 @@ public class EsSearchService {
     }
 
     private SearchRequest getSearchRequest() {
-        return new SearchRequest(index + "-*");
+        return new SearchRequest(index + "*");
     }
 
     public SearchSourceBuilder getPageSourceBuilder(int index, int size) {
