@@ -44,23 +44,22 @@ public class IndexManageService {
                 client.indices().delete(request, RequestOptions.DEFAULT);
             }
         } catch (IOException e) {
-            log.error("删除过期索引失败", ExceptionUtils.getStackTrace(e));
+            log.error("删除过期索引失败: {}", ExceptionUtils.getStackTrace(e));
         }
     }
 
     private List<String> getAllExpireIndex() throws IOException {
         GetAliasesResponse response = client.indices().getAlias(new GetAliasesRequest(), RequestOptions.DEFAULT);
-        return response.getAliases().keySet().stream().filter(r -> notExpire(r)).collect(Collectors.toList());
+        return response.getAliases().keySet().stream().filter(this::notExpire).collect(Collectors.toList());
     }
 
     private boolean notExpire(String indexStr) {
-        String i = index + "-";
-        if (indexStr.indexOf(i) != 0) {
+        if (!indexStr.startsWith(index)) {
             return false;
         }
 
-        String[] is = indexStr.split(i);
+        String[] is = indexStr.split("-");
         String min = DateUtil.format(DateUtil.add(new Date(), -expireDay), DateUtil.YYYYMMDD);
-        return Long.valueOf(is[1]) < Long.valueOf(min);
+        return Long.parseLong(is[1]) < Long.parseLong(min);
     }
 }
