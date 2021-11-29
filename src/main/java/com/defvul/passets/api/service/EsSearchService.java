@@ -83,8 +83,8 @@ public class EsSearchService {
             Thread.sleep(20000L);
             client.cluster().putSettings(request, RequestOptions.DEFAULT);
         } catch (Exception e) {
-            init();
             log.error("执行es设置报错: {}", ExceptionUtils.getStackTrace(e));
+            init();
         }
     }
 
